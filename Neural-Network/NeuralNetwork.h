@@ -1,7 +1,11 @@
-﻿#include <iostream>
+#pragma once
+#include <iostream>
 #include <vector>
 #include <random>
 #include <chrono>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 class NeuralNet {
 
@@ -21,20 +25,25 @@ private:
             // Connections from this neuron to the next layers neurons
             std::vector<float> m_weight;
             float m_activation = 0;
-            float m_gradient = 0;
 
-            Neuron(int numberOfNeuronsNextLayer);
+            //                                  if true weights is set to 0
+            Neuron(int numberOfNeuronsNextLayer, bool zeroWeights = false);
+
+            float sigmoid(float x);
+
+            void mutateWeight(float mutationStrength);
 
         };
 
     public:
 
         int m_numberNeurons = 0;
-        int m_numberNeuronsNextLayer = 0;
 
         std::vector<Neuron> m_neurons;
 
-        Layer(bool createWeightsFlagg, int numberOfNeurons, int numberOfNeuronsNextLayer = 0);
+
+        //                                                                                   if true weights is set to 0
+        Layer(bool createWeightsFlagg, int numberOfNeurons, int numberOfNeuronsNextLayer = 0, bool zeroWeights = false);
 
         std::vector<std::vector<float>> getWeights();
 
@@ -42,6 +51,9 @@ private:
         std::vector<float> getActivation();
 
         void setActivation(std::vector<float> a);
+
+        void mutateThisLayer(float mutationStrenght);
+
     };
 
 
@@ -50,19 +62,22 @@ public:
 
     std::vector<Layer> m_layers;
     std::vector<int> m_shape;
+
     int m_numberLayers;
-
-    float derivativeOfSigmoid(float output);
-
-    float sigmoid(float x);
 
     std::vector<float> dot(std::vector<float> x1, std::vector<std::vector<float>> x2);
 
-    void addLayer(int numberOfNeurons);
-
     std::vector<float> feedForward();
+
+    void addLayer(int numberOfNeurons);
 
     void setInputs(std::vector<float> inputs);
 
-    void init();
+    void init(bool zeroWeights = false);
+
+    void naturalSelection(NeuralNet *pointerToOrig, std::vector<float> target, int numberOfGenerations, int sizeOfGeneration, float mutationStrenght);
+    
+    void save(std::string path);
+
+    void load(std::string path);
 };

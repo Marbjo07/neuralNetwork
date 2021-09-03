@@ -1,66 +1,70 @@
 ﻿#include "NeuralNetwork.h"
 
-
-template<typename T>
-void printVector(std::vector<T> vector) {
-    for (int i : vector) {
-        std::cout << vector[i] << " | ";
-    }
-    std::cout << std::endl;
-}
-
-
-
 int main() {
 
     auto t1 = std::chrono::high_resolution_clock::now();
     std::cout << "Hello World" << std::endl;
 
-    srand(0);
+    srand(1);
 
 
     NeuralNet model;
-    float learningRate = 0.01;
 
+    bool makeNewModel = false;
 
-    model.addLayer(3);
-    model.addLayer(4);
-    model.addLayer(5);
-    model.addLayer(3);
+    if (makeNewModel) {
 
+        model.addLayer(3);
+        model.addLayer(4);
+        for (auto i = 0; i < 10000; i++) {
+            model.addLayer(100);
+        }
 
-    model.init();
+        model.addLayer(4);
+        model.addLayer(3);
 
-    model.setInputs({ 0, 1, 2 });
+        model.init();
 
+        model.setInputs({ 1,0,0 });
 
-    //for (auto i = 0; i < model.m_numberLayers; i++) {
-    //    for (auto x = 0; x < model.m_layers[i].m_numberNeurons; x++) {
-    //        printVector(model.m_layers[i].getWeights()[x]);
-    //    }
-    //    std::cout << "\n";
-    //}
+        model.naturalSelection(&model, { 1,0,0 }, 1, 1, 1);
 
+        std::cout << "Natural selection done\n";
 
-    printVector(model.feedForward());
-
-    std::cout << "\n";
-
-
-    for (auto x = 0; x < model.m_numberLayers; x++) {
-        printVector(model.m_layers[x].getActivation());
+        model.save("E:/desktop/neuralNet/model2.bin");
     }
 
+    else {
+        model.load("E:/desktop/neuralNet/model2.bin");
 
-    std::cout << "Bye World" << std::endl;
+       
+    }
+
+    model.setInputs({ 1,0,0 });
+
+    std::vector<float> output = model.feedForward();
+    std::cout << "Output: ";
+    for (auto x : output) {
+        std::cout << x << " | ";
+    }
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
-    std::cout << "Time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() << std::endl;
-
-
+    std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << std::endl;
 
 
     return 1;
 
 }
+
+
+/*
+ for (auto layerNum = 0; layerNum < model.m_numberLayers; layerNum++) {
+            for (auto neuronNum = 0; neuronNum < model.m_layers[layerNum].m_numberNeurons; neuronNum++) {
+                for (auto weightNum = 0; weightNum < model.m_layers[layerNum].m_neurons[neuronNum].m_weight.size(); weightNum++) {
+                    std::cout << model.m_layers[layerNum].m_neurons[neuronNum].m_weight[weightNum] << " | ";
+                }
+                std::cout << "\n";
+            }
+            std::cout << "\n";
+        }*/
