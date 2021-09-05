@@ -26,13 +26,14 @@ private:
             std::vector<float> m_weight;
             float m_activation = 0;
 
+            float m_bias = 1;
+
             //                                  if true weights is set to 0
             Neuron(int numberOfNeuronsNextLayer, bool zeroWeights = false);
 
-            float sigmoid(float x);
+            float activationFunction(float x);
 
-            void mutateWeight(float mutationStrength);
-
+            void mutateWeightAndBias(float mutationStrength);
         };
 
     public:
@@ -41,15 +42,15 @@ private:
 
         std::vector<Neuron> m_neurons;
 
-
         //                                                                                   if true weights is set to 0
-        Layer(bool createWeightsFlagg, int numberOfNeurons, int numberOfNeuronsNextLayer = 0, bool zeroWeights = false);
+        Layer(int numberOfNeurons, int numberOfNeuronsNextLayer = 0, bool zeroWeights = false);
 
         std::vector<std::vector<float>> getWeights();
 
-
         std::vector<float> getActivation();
 
+        std::vector<float> getBias();
+        
         void setActivation(std::vector<float> a);
 
         void mutateThisLayer(float mutationStrenght);
@@ -69,15 +70,18 @@ public:
 
     std::vector<float> feedForward();
 
+
     void addLayer(int numberOfNeurons);
 
     void setInputs(std::vector<float> inputs);
 
     void init(bool zeroWeights = false);
 
-    void naturalSelection(NeuralNet *pointerToOrig, std::vector<float> target, int numberOfGenerations, int sizeOfGeneration, float mutationStrenght);
+    void naturalSelection(std::vector<float> target, int numberOfGenerations, int sizeOfGeneration);
     
     void save(std::string path);
 
     void load(std::string path);
+
+    void printWeightAndBias();
 };
