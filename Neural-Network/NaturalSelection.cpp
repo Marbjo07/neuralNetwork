@@ -7,7 +7,6 @@ void printVector(std::vector<T> vector) {
     }
 }
 
-
 float calcError(std::vector<float> output, std::vector<float> target) {
     float e{};
     for (auto i = 0; i < output.size(); i++)
@@ -15,73 +14,34 @@ float calcError(std::vector<float> output, std::vector<float> target) {
     return e / output.size();
 }
 
-NeuralNet combine(NeuralNet model1, NeuralNet model2) {
-
-    for (auto layerNum = 0; layerNum < model1.m_numberLayers; layerNum++) {
-
-        for (auto neuronNum = 0; neuronNum < model1.m_layers[layerNum].m_numberNeurons; neuronNum++) {
-        
-            for (auto weightNum = 0; weightNum < model1.m_layers[layerNum].m_neurons[neuronNum].m_weight.size(); weightNum++) {
-            
-
-                // Set weight to average of both models
-                model1.m_layers[layerNum].m_neurons[neuronNum].m_weight[weightNum] += model2.m_layers[layerNum].m_neurons[neuronNum].m_weight[weightNum];
-                model1.m_layers[layerNum].m_neurons[neuronNum].m_weight[weightNum] /= 2;
-            }
-
-            // Set bias to average of both models
-            model1.m_layers[layerNum].m_neurons[neuronNum].m_bias += model2.m_layers[layerNum].m_neurons[neuronNum].m_bias;
-            model1.m_layers[layerNum].m_neurons[neuronNum].m_bias /= 2;
-
-
-        }
-
-    }
-
-
-    return model1;
-}
-
-void NeuralNet::naturalSelection(std::vector<float> target, int numberOfGenerations, int sizeOfGeneration) {
-
-    NeuralNet bestModel = *this;
+void NeuralNet::naturalSelection(NeuralNet *pointerToOrig, std::vector<float> target, int numberOfGenerations, int sizeOfGeneration, float mutationStrenght) {
+   
+    NeuralNet bestModel = *pointerToOrig;
     NeuralNet tempModel;
-
-    float lowestError = calcError(bestModel.feedForward(), target);
 
     for (auto gen = 0; gen < numberOfGenerations; gen++) {
 
-        if (gen % 100 == 0) {
-            std::cout << "Gen: " << gen << std::endl;
-        }
-
         tempModel = bestModel;
+
+        float lowestError = calcError(bestModel.feedForward(), target);
+
+        std::cout << "Gen: " << gen << std::endl;
 
         for (auto i = 0; i < sizeOfGeneration; i++) {
 
+            for (auto layerNum = 0; layerNum < bestModel.m_numberLayers; layerNum++) {
 
-            for (auto i = 0; i < m_numberLayers; i++) {
-                tempModel.m_layers[i].mutateThisLayer(1);
+                tempModel.m_layers[layerNum].mutateThisLayer(mutationStrenght);
             }
-
             std::vector<float> output = tempModel.feedForward();
-           
             float tempError = calcError(output, target);
-
 
             if (tempError < lowestError) {
                 std::cout << "New best model: " << gen << " " << i << " with ";
                 printVector(output);
                 std::cout << "as output and " << tempError << " as error." << std::endl;
-
-                tempModel.printWeightAndBias();
-
                 lowestError = tempError;
-
-                bestModel = combine(tempModel, bestModel);
-                
-                // start new generation
-                break;
+                bestModel = tempModel;
             }
 
 
@@ -94,4 +54,3 @@ void NeuralNet::naturalSelection(std::vector<float> target, int numberOfGenerati
     }
 
 }
-//0.351641 19491
