@@ -1,4 +1,9 @@
-#include "NeuralNetwork.h"
+#pragma once
+
+#include "NeuralNetwork.hpp"
+
+#ifndef NATURALSELECTION_CPP
+#define NATURALSELECTION_CPP
 
 template<typename T>
 void printVector(std::vector<T> vector) {
@@ -8,90 +13,124 @@ void printVector(std::vector<T> vector) {
 }
 
 
-float calcError(std::vector<float> output, std::vector<float> target) {
+float NeuralNet::MAELossFunction(std::vector<float> output, std::vector<float> target) {
     float e{};
+
     for (auto i = 0; i < output.size(); i++)
         e += std::abs(target[i] - output[i]);
     return e / output.size();
 }
 
-NeuralNet combine(NeuralNet model1, NeuralNet model2) {
+float NeuralNet::MSELossFunction(std::vector<float> output, std::vector<float> target) {
+    float e{};
+    for (auto i = 0; i < output.size(); i++)
+        e += std::pow(target[i] - output[i], 2);
+    return e;
+}
 
-    for (auto layerNum = 0; layerNum < model1.m_numberLayers; layerNum++) {
+// For every weight adds a random value between -1 and 1
+void mergeWithRandomModel(NeuralNet* model, float mutationStrength) {
+    std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
 
-        for (auto neuronNum = 0; neuronNum < model1.m_layers[layerNum].m_numberNeurons; neuronNum++) {
-        
-            for (auto weightNum = 0; weightNum < model1.m_layers[layerNum].m_neurons[neuronNum].m_weight.size(); weightNum++) {
-            
 
-                // Set weight to average of both models
-                model1.m_layers[layerNum].m_neurons[neuronNum].m_weight[weightNum] += model2.m_layers[layerNum].m_neurons[neuronNum].m_weight[weightNum];
-                model1.m_layers[layerNum].m_neurons[neuronNum].m_weight[weightNum] /= 2;
+    for (auto layerNum = 0; layerNum < model->m_numberLayers; layerNum++) {
+
+        for (auto neuronNum = 0; neuronNum < model->m_layers[layerNum].m_numberNeurons; neuronNum++) {
+
+
+            for (auto weightNum = 0; weightNum < model->m_layers[layerNum].m_neurons[neuronNum].m_weights.size(); weightNum++) {
+
+                model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+
             }
 
-            // Set bias to average of both models
-            model1.m_layers[layerNum].m_neurons[neuronNum].m_bias += model2.m_layers[layerNum].m_neurons[neuronNum].m_bias;
-            model1.m_layers[layerNum].m_neurons[neuronNum].m_bias /= 2;
-
+            model->m_layers[layerNum].m_neurons[neuronNum].m_bias += (static_cast<float>(gen()) / gen.max() * 2 - 1) * mutationStrength;
 
         }
 
     }
-
-
-    return model1;
 }
 
-void NeuralNet::naturalSelection(std::vector<float> target, int numberOfGenerations, int sizeOfGeneration) {
+void NeuralNet::naturalSelection(
+    std::vector<float> target,
+    int numberOfTest,
+    float mutationStrength,
+    NeuralNet* checkerModel
+) {
 
     NeuralNet bestModel = *this;
-    NeuralNet tempModel;
+    NeuralNet tempModel = bestModel;
+    float lowestError;
+    float tempError;
 
-    float lowestError = calcError(bestModel.feedForward(), target);
+    if (checkerModel != NULL) {
+        checkerModel->setInput(feedForward());
+        lowestError = MAELossFunction(checkerModel->feedForward(), target);
 
-    for (auto gen = 0; gen < numberOfGenerations; gen++) {
+    }
+    else {
+        lowestError = MAELossFunction(bestModel.feedForward(), target);
+    }
 
-        if (gen % 100 == 0) {
-            std::cout << "Gen: " << gen << std::endl;
-        }
+    for (auto gen = 0; gen < numberOfTest; gen++) {
+
+       // auto t1 = std::chrono::high_resolution_clock::now();
 
         tempModel = bestModel;
 
-        for (auto i = 0; i < sizeOfGeneration; i++) {
+        mergeWithRandomModel(&tempModel, mutationStrength);
 
 
-            for (auto i = 0; i < m_numberLayers; i++) {
-                tempModel.m_layers[i].mutateThisLayer(1);
+        std::vector<float> output = tempModel.feedForward();
+
+        if (checkerModel != NULL) {
+            checkerModel->setInput(output);
+
+
+            tempError = MAELossFunction(checkerModel->feedForward(), target);
+        }
+        else {
+            tempError = MAELossFunction(output, target);
+        }
+
+
+        if (tempError < lowestError) {
+            bestModel = tempModel;
+            std::cout << "New best model: " << gen << " ";
+
+
+            std::cout << "with ";
+            if (checkerModel != NULL) {
+                printVector(checkerModel->m_layers[checkerModel->m_numberLayers - 1].getActivation());
             }
-
-            std::vector<float> output = tempModel.feedForward();
-           
-            float tempError = calcError(output, target);
-
-
-            if (tempError < lowestError) {
-                std::cout << "New best model: " << gen << " " << i << " with ";
+            else {
                 printVector(output);
-                std::cout << "as output and " << tempError << " as error." << std::endl;
+            }
+            std::cout << " as output and " << tempError << " as error." << std::endl;
 
-                tempModel.printWeightAndBias();
-
-                lowestError = tempError;
-
-                bestModel = combine(tempModel, bestModel);
-                
-                // start new generation
+            if (tempError == 0) {
+                *this = bestModel;
                 break;
             }
+            lowestError = tempError;
 
+            // start new generation
 
         }
-    }
+
+        else {
+            //std::cout << gen << " error: " << tempError << " lowest error: " << lowestError << " \n";
+        }
+
+        //std::cout << "Duration in miliseconds: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1).count() << std::endl;
 
 
-    for (auto a = 0; a < m_numberLayers; a++) {
-        m_layers[a].m_neurons = bestModel.m_layers[a].m_neurons;
     }
+    std::cout << sumOfWeightsAndBias() << std::endl;
+    *this = bestModel;
+    std::cout << sumOfWeightsAndBias() << std::endl;
+
 
 }
-//0.351641 19491
+
+#endif // NATURALSELECTION_CPP

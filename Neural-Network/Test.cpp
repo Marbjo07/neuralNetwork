@@ -1,4 +1,6 @@
-﻿#include "NeuralNetwork.h"
+﻿#pragma once
+
+#include "NeuralNetwork.hpp"
 
 int main() {
 
@@ -9,8 +11,8 @@ int main() {
 
     std::string savePath = "E:/desktop/neuralNet/model2.bin";
 
-    int numberOfGenerations = 10000;
-    int sizeOfGeneration = 100;
+    int numberOfGenerations = 100000;
+    float mutationStrength = 0.075;
 
     NeuralNet model;
 
@@ -24,11 +26,10 @@ int main() {
         model.addLayer(3);
         model.addLayer(3);
         
-        model.init();
+        model.init("AI");
 
-        model.setInputs({ 1,0,0 });
 
-        model.naturalSelection({ 1,0,0 }, numberOfGenerations, sizeOfGeneration);
+        model.naturalSelection({ 1,0,0 }, numberOfGenerations, mutationStrength);
 
         std::cout << "Natural selection done\n";
 
@@ -39,7 +40,6 @@ int main() {
         model.load(savePath);
     }
 
-    model.setInputs({ 1,0,0 });
 
     std::vector<float> output = model.feedForward();
 
@@ -47,13 +47,13 @@ int main() {
     for (auto x : output) std::cout << x << " | ";
     std::cout << "\n";
 
-    auto t2 = std::chrono::high_resolution_clock::now();
-
-
     model.printWeightAndBias();
 
-    std::cout << "Duration in miliseconds: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << std::endl;
+    std::cout << "Duration in milliseconds: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1).count() << std::endl;
 
     return 1;
 
 }
+//     | Data points              | Total | Average |       
+// CPU | 3437 3483 3460 3420 3389 | 17189 | 3437.8  |
+// GPU | Coming soon....
