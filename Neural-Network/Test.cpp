@@ -12,7 +12,7 @@ int main() {
     std::string savePath = "E:/desktop/neuralNet/model2.bin";
 
     int numberOfGenerations = 100000;
-    float mutationStrength = 0.075;
+    float mutationStrength = 1;
 
     NeuralNet model;
 
