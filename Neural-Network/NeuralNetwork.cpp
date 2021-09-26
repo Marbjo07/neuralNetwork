@@ -16,8 +16,9 @@ NeuralNet::Layer::Neuron::Neuron(int numberOfNeuronsPrevLayer, int defualtValue)
         m_weights.resize(numberOfNeuronsPrevLayer, defualtValue);
     }
     else {
+        m_weights.reserve(numberOfNeuronsPrevLayer);
         for (auto i = 0; i < numberOfNeuronsPrevLayer; i++) {
-            m_weights.push_back(static_cast <float> (rand()) / RAND_MAX * 2 - 1);
+            m_weights.emplace_back(static_cast <float> (rand()) / RAND_MAX * 2 - 1);
         }
     }
 }
@@ -57,9 +58,9 @@ float NeuralNet::Layer::Neuron::activationFunction(float x) {
 
 NeuralNet::Layer::Layer(int numberOfNeurons, int numberOfNeuronsPrevLayer, int defualtWeight) {
     m_numberNeurons = numberOfNeurons;
-
+    m_neurons.reserve(numberOfNeurons);
     for (auto i = 0; i < m_numberNeurons; i++) {
-        m_neurons.push_back(Neuron(numberOfNeuronsPrevLayer, defualtWeight));
+        m_neurons.emplace_back(Neuron(numberOfNeuronsPrevLayer, defualtWeight));
     }
 }
 
@@ -141,8 +142,9 @@ void NeuralNet::init(std::string name, int defualtWeight) {
     m_totalNumberOfNeurons += m_shape[0];
 
     for (int i = 1; i < m_shape.size() ; i++) {
-        m_layers.push_back(Layer(m_shape[i], m_shape[i-1], defualtWeight));
+        m_layers.emplace_back(Layer(m_shape[i], m_shape[i-1], defualtWeight));
         m_totalNumberOfNeurons += m_shape[i];
+        std::cout << "Total number of neurons: " << m_totalNumberOfNeurons << std::endl;
     }
 
     m_numberLayers = m_shape.size();

@@ -16,17 +16,12 @@
 
 class NeuralNet {
 
-private:
-
+public:
     class Layer {
 
-    private:
+    public:
 
         class Neuron {
-
-        private:
-
-
         public:
 
             // Connections from this neuron to the prev layers neurons
@@ -43,7 +38,6 @@ private:
             void mutateWeightAndBias(float mutationStrength);
         };
 
-    public:
 
         int m_numberNeurons = 0;
 
@@ -57,16 +51,13 @@ private:
         std::vector<float> getActivation();
 
         std::vector<float> getBias();
-        
+
         void setActivation(std::vector<float>* a);
 
         void mutateThisLayer(float mutationStrenght);
 
     };
 
-
-
-public:
 
     std::vector<Layer> m_layers;
     std::vector<int> m_shape;

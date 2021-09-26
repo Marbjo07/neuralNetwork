@@ -28,6 +28,7 @@ float NeuralNet::MSELossFunction(std::vector<float> output, std::vector<float> t
     return e;
 }
 
+#define STEPSIZE 16
 // For every weight adds a random value between -1 and 1
 void mergeWithRandomModel(NeuralNet* model, float mutationStrength) {
     std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
@@ -37,13 +38,36 @@ void mergeWithRandomModel(NeuralNet* model, float mutationStrength) {
 
         for (auto neuronNum = 0; neuronNum < model->m_layers[layerNum].m_numberNeurons; neuronNum++) {
 
+            if (model->m_layers[layerNum].m_neurons[neuronNum].m_weights.size() > STEPSIZE)
+            {
+                for (auto weightNum = 0; weightNum < model->m_layers[layerNum].m_neurons[neuronNum].m_weights.size() - STEPSIZE; weightNum += STEPSIZE) {
 
-            for (auto weightNum = 0; weightNum < model->m_layers[layerNum].m_neurons[neuronNum].m_weights.size(); weightNum++) {
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 1] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 2] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 3] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 4] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 5] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 6] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 7] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 8] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 9] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 10] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 11] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 12] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 13] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 14] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum + 15] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
 
-                model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
-
+                }
             }
+            else {
+                for (auto weightNum = 0; weightNum < model->m_layers[layerNum].m_neurons[neuronNum].m_weights.size(); weightNum++) {
 
+                    model->m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum] += ((static_cast<float>(gen()) / gen.max()) * 2 - 1) * mutationStrength;
+
+                }
+            }
             model->m_layers[layerNum].m_neurons[neuronNum].m_bias += (static_cast<float>(gen()) / gen.max() * 2 - 1) * mutationStrength;
 
         }
@@ -74,8 +98,7 @@ void NeuralNet::naturalSelection(
 
     for (auto gen = 0; gen < numberOfTest; gen++) {
 
-       // auto t1 = std::chrono::high_resolution_clock::now();
-
+        auto t1 = std::chrono::high_resolution_clock::now();
         tempModel = bestModel;
 
         mergeWithRandomModel(&tempModel, mutationStrength);
@@ -92,7 +115,6 @@ void NeuralNet::naturalSelection(
         else {
             tempError = MAELossFunction(output, target);
         }
-
 
         if (tempError < lowestError) {
             bestModel = tempModel;
@@ -113,13 +135,10 @@ void NeuralNet::naturalSelection(
                 break;
             }
             lowestError = tempError;
-
-            // start new generation
-
         }
 
         else {
-            //std::cout << gen << " error: " << tempError << " lowest error: " << lowestError << " \n";
+            //std::cout << "Error: " << tempError << " lowest error: " << lowestError << std::endl;
         }
 
         //std::cout << "Duration in miliseconds: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1).count() << std::endl;
