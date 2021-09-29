@@ -26,16 +26,14 @@ public:
 
             // Connections from this neuron to the prev layers neurons
             std::vector<float> m_weights;
-            float m_activation = 0;
-
             float m_bias = 1;
 
-            //Every weight is set to defualtValue if spesified
-            Neuron(int numberOfNeuronsPrevLayer, int defualtValue);
+            float m_activation = 0;
 
             float activationFunction(float x);
 
-            void mutateWeightAndBias(float mutationStrength);
+            //Every weight is set to defualtValue if spesified
+            Neuron(std::mt19937* gen, const float* constVal, int numberOfNeuronsPrevLayer, int defualtValue);
         };
 
 
@@ -44,7 +42,7 @@ public:
         std::vector<Neuron> m_neurons;
 
         // Every weight is set to defualtWeight if not eqaul to NULL
-        Layer(int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, int defualtWeight = NULL);
+        Layer(std::mt19937* gen, const float* constVal, int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, int defualtWeight = NULL);
 
         void getWeights(std::vector<std::vector<float>>* weights);
 
@@ -53,8 +51,6 @@ public:
         std::vector<float> getBias();
 
         void setActivation(std::vector<float>* a);
-
-        void mutateThisLayer(float mutationStrenght);
 
     };
 

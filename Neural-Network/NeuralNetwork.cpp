@@ -9,38 +9,19 @@
 //
 // Neuron class:
 //
-
-NeuralNet::Layer::Neuron::Neuron(int numberOfNeuronsPrevLayer, int defualtValue) {
+NeuralNet::Layer::Neuron::Neuron(std::mt19937* gen, const float* constVal, int numberOfNeuronsPrevLayer, int defualtValue) {
 
     if (defualtValue != NULL) {
         m_weights.resize(numberOfNeuronsPrevLayer, defualtValue);
     }
     else {
-        m_weights.reserve(numberOfNeuronsPrevLayer);
+        // Random numbers between -1 and 1
+        m_weights.resize(numberOfNeuronsPrevLayer, (*constVal));
         for (auto i = 0; i < numberOfNeuronsPrevLayer; i++) {
-            m_weights.emplace_back(static_cast <float> (rand()) / RAND_MAX * 2 - 1);
+            m_weights[i] *= float((*gen)());
         }
     }
 }
-
-void NeuralNet::Layer::Neuron::mutateWeightAndBias(float mutationStrength) {
-
-    for (auto i = 0; i < m_weights.size(); i++) {
-        if (m_weights[i] < 10) {
-            m_weights[i] += (static_cast <float> (rand()) / RAND_MAX * 2 - 1) * mutationStrength;
-        }
-        else {
-            m_weights[i] = 1;
-        }
-    }
-    if (m_bias < 10) {
-        m_bias += (static_cast <float> (rand()) / RAND_MAX * 2 - 1) * mutationStrength;
-    }
-    else {
-        m_bias = 1;
-    }
-}
-
 
 float NeuralNet::Layer::Neuron::activationFunction(float x) {
 
@@ -56,11 +37,11 @@ float NeuralNet::Layer::Neuron::activationFunction(float x) {
 //
 
 
-NeuralNet::Layer::Layer(int numberOfNeurons, int numberOfNeuronsPrevLayer, int defualtWeight) {
+NeuralNet::Layer::Layer(std::mt19937* gen, const float* constVal, int numberOfNeurons, int numberOfNeuronsPrevLayer, int defualtWeight) {
     m_numberNeurons = numberOfNeurons;
     m_neurons.reserve(numberOfNeurons);
     for (auto i = 0; i < m_numberNeurons; i++) {
-        m_neurons.emplace_back(Neuron(numberOfNeuronsPrevLayer, defualtWeight));
+        m_neurons.emplace_back(Neuron(gen, constVal, numberOfNeuronsPrevLayer, defualtWeight));
     }
 }
 
@@ -100,12 +81,6 @@ void NeuralNet::Layer::setActivation(std::vector<float>* a) {
     }
 }
 
-void NeuralNet::Layer::mutateThisLayer(float mutationStrenght) {
-    for (auto i = 0; i < m_numberNeurons; i++) {
-        m_neurons[i].mutateWeightAndBias(mutationStrenght);
-    }
-}
-
 //
 // NeuralNet class:
 //
@@ -128,6 +103,11 @@ void NeuralNet::setInput(std::vector<float> input) {
 
 void NeuralNet::init(std::string name, int defualtWeight) {
 
+    
+    // Random numbers
+    std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
+
+    //std::cout << "Init: " << name << std::endl;
     m_name = name;
 
     // clear layers if init is already called
@@ -136,15 +116,19 @@ void NeuralNet::init(std::string name, int defualtWeight) {
     // Reserve memory
     m_layers.reserve(m_shape.size());
 
+
+    // Used in generating random numbers for weights 
+    const float constVal = 2.0f / float(gen.max());
+
     // Adds placeholder neurons
-    m_layers.push_back(Layer(m_shape[0]));
+    m_layers.emplace_back(Layer(&gen, &constVal, m_shape[0]));
     
     m_totalNumberOfNeurons += m_shape[0];
 
     for (int i = 1; i < m_shape.size() ; i++) {
-        m_layers.emplace_back(Layer(m_shape[i], m_shape[i-1], defualtWeight));
+        m_layers.emplace_back(Layer(&gen, &constVal, m_shape[i], m_shape[i-1], defualtWeight));
         m_totalNumberOfNeurons += m_shape[i];
-        std::cout << "Total number of neurons: " << m_totalNumberOfNeurons << std::endl;
+        //std::cout << "Total number of neurons: " << m_totalNumberOfNeurons << std::endl;
     }
 
     m_numberLayers = m_shape.size();
@@ -165,6 +149,7 @@ void NeuralNet::save(std::string path) {
 
         // Save name
         saveFile.write(m_name.c_str(), m_name.size());
+        saveFile.write("\0", sizeof(char)); 
 
         // Save size of m_shape
         int sizeOfShape = m_shape.size();
@@ -213,6 +198,7 @@ void NeuralNet::load(std::string path) {
 
         // Get name
         std::string modelName;
+        
         std::getline(loadFile, modelName, '\0');
 
         int sizeOfShape;
@@ -248,6 +234,9 @@ void NeuralNet::load(std::string path) {
         }
 
         loadFile.close();
+    }
+    else {
+        std::cout << "Could not open file\n";
     }
 
     std::cout << "\nDone loading pre trained model\n";

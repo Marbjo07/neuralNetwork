@@ -38,6 +38,7 @@
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -51,6 +52,7 @@
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -111,6 +113,9 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -118,6 +123,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>-Xcompiler -clr %(AdditionalOptions)</AdditionalOptions>
+      <Profile>true</Profile>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>32</TargetMachinePlatform>
@@ -154,6 +160,9 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <AdditionalOptions>--ffast-math %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -162,6 +171,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>-Xcompiler -clr %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>%(AdditionalDependencies);cudart.lib;cudadevrt.lib;cudart_static.lib</AdditionalDependencies>
+      <Profile>true</Profile>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -173,12 +183,15 @@
     <CudaCompile Include="FeedForward.cu">
       <FileType>Document</FileType>
     </CudaCompile>
+    <ClCompile Include="Main.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="NaturalSelection.cpp" />
     <ClCompile Include="NeuralNetwork.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NeuralNetwork.hpp" />
+    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="stb_image_write.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

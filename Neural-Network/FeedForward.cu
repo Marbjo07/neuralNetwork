@@ -1,9 +1,9 @@
-#pragma
+#pragma once
 
 #include "NeuralNetwork.hpp"
-#include <cuda_runtime.h>
-#include <cuda.h>
-#include <device_launch_parameters.h>
+#include "E:\CUDA\Cuda Development\include\cuda_runtime.h"
+#include "E:\CUDA\Cuda Development\include\cuda.h"
+#include "E:\CUDA\Cuda Development\include\device_launch_parameters.h"
 
 #ifndef FEEDFORWARD_CPP
 #define FEEDFORWARD_CPP
@@ -26,17 +26,15 @@ std::vector<float> NeuralNet::feedForward() {
     uint32_t neuronNum;
 
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
-
         float* prevLayerActivation;
 
         cudaMalloc(&prevLayerActivation, m_layers[layerNum - 1].m_numberNeurons * sizeof(float));
 
         cudaMemcpy(prevLayerActivation, m_layers[layerNum].getActivation().data(), m_layers[layerNum - 1].m_numberNeurons * sizeof(float), cudaMemcpyHostToDevice);
 
-        for (uint32_t neuronNum = 0; neuronNum < m_layers[layerNum].m_numberNeurons; neuronNum++) {
-
+        for (neuronNum = 0; neuronNum < m_layers[layerNum].m_numberNeurons; neuronNum++) {
+            
             float* weights;
-
 
 
             cudaMalloc(&weights, m_layers[layerNum - 1].m_numberNeurons * sizeof(float));
@@ -53,9 +51,8 @@ std::vector<float> NeuralNet::feedForward() {
 
         cudaFree(prevLayerActivation);
 
-        neuronNum = 0;
         if (STEPSIZE < m_layers[layerNum].m_numberNeurons) {
-            for (; neuronNum < m_layers[layerNum].m_numberNeurons - STEPSIZE; neuronNum += STEPSIZE) {
+            for (neuronNum = 0; neuronNum < m_layers[layerNum].m_numberNeurons - STEPSIZE; neuronNum += STEPSIZE) {
 
                 m_layers[layerNum].m_neurons[neuronNum + 0].m_activation = m_layers[layerNum].m_neurons[neuronNum + 0].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 0].m_activation);
                 m_layers[layerNum].m_neurons[neuronNum + 1].m_activation = m_layers[layerNum].m_neurons[neuronNum + 1].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 1].m_activation);
