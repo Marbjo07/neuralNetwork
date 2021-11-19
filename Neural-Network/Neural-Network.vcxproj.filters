@@ -21,17 +21,14 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NaturalSelection.cpp">
-      <Filter>Source Files\Implemetation</Filter>
-    </ClCompile>
     <ClCompile Include="NeuralNetwork.cpp">
-      <Filter>Source Files\Implemetation</Filter>
-    </ClCompile>
-    <ClCompile Include="Test.cpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClCompile>
     <ClCompile Include="Main.cpp">
       <Filter>Source Files\FaceGenerationWithGAN</Filter>
+    </ClCompile>
+    <ClCompile Include="ShowCase.cpp">
+      <Filter>Source Files\Implemetation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -44,9 +41,18 @@
     <ClInclude Include="stb_image_write.h">
       <Filter>Source Files\FaceGenerationWithGAN</Filter>
     </ClInclude>
+    <ClInclude Include="Tests.h">
+      <Filter>Source Files\Implemetation</Filter>
+    </ClInclude>
+    <ClInclude Include="Macros.h">
+      <Filter>Source Files\Implemetation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="FeedForward.cu">
+      <Filter>Source Files\Implemetation</Filter>
+    </CudaCompile>
+    <CudaCompile Include="NaturalSelection.cpp">
       <Filter>Source Files\Implemetation</Filter>
     </CudaCompile>
   </ItemGroup>
