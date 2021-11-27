@@ -14,67 +14,71 @@ namespace Test {
         }
 
         bool caEqual(float a, float b) {
-            return ((a + 0.1 >= b) && (a - 0.1 <= b));
+            return ((a + 0.05 >= b) && (a - .05<= b));
         }
 
         std::vector<float> matrixMul(NeuralNet* model) {
 
-            std::vector<float> outActivation;
             float tmp = 0;
 
-            for (uint32_t k = 0; k < (*model).m_layers[1].m_numberNeurons; k++) {
+            for (uint32_t L = 0; L < (*model).m_numberLayers - 1; L++) {
 
-                tmp = 0;
-                
-                for (uint32_t i = 0; i < (*model).m_layers[0].m_numberNeurons; i++) {
+                for (uint32_t k = 0; k < (*model).m_layers[L + 1].m_numberNeurons; k++) {
 
-                    tmp += (*model).m_layers[0].m_neurons[i].m_activation * (*model).m_layers[1].m_neurons[k].m_weights[i];
+                    tmp = 0;
+
+                    for (uint32_t i = 0; i < (*model).m_layers[L].m_numberNeurons; i++) {
+
+                        tmp += (*model).m_layers[L].m_neurons[i].m_activation * (*model).m_layers[L + 1].m_neurons[k].m_weights[i];
+                    }
+
+                    (*model).m_layers[L + 1].m_neurons[k].m_activation = (*model).m_layers[L + 1].activationFunction(tmp); //+ (*model).m_layers[L + 1].m_neurons[k].m_bias;
                 }
-
-                outActivation.push_back((*model).m_layers[1].m_neurons[k].activationFunction(tmp));
             }
 
 
-
-            return outActivation;
+            return (*model).m_layers.back().getActivations();
         }
 
         int FeedForwardTest(bool debug) {
 
             NeuralNet model;
 
-            model.addLayer(91);
-            model.addLayer(63);
-            model.addLayer(1);
+            model.addLayer(4);
+            model.addLayer(256);
+
 
             model.init("FeedForwardTest");
 
             model.setRandomInput();
 
             std::vector<std::vector<float>> weights;
-            model.m_layers[1].getWeights(&weights);
+            model.m_layers[1].writeWeights(&weights);
 
             std::vector<float> expectedResults = matrixMul(&model);
-
+            float tmp = 0;
             for (auto k = 0; k < 4; k++) {
             
                 
-                model.feedForward();
-
-                for (size_t i = 0; i < model.m_layers[1].m_numberNeurons; i++) {
-                    if (!caEqual(model.m_layers[1].m_neurons[i].m_activation, expectedResults[i])) {
-
-                        std::cout << "Faild at: " << i << " iteration: " << k << std::endl;
-                        
+                std::vector<float> output = model.feedForward();
+                for (size_t i = 0; i < output.size(); i++) {
+                    
+                    tmp += abs(abs(model.m_layers[1].m_neurons[i].m_activation) - abs(expectedResults[i]));
+              
+                    if (!caEqual(output[i], expectedResults[i])) {
+                        std::cout << "Faild at: " << i << " iteration: " << k << " " << std::endl;
+                        std::cout << "Output: " << output[i] << " expectation: " << expectedResults[i] << std::endl;
                         for (auto x : expectedResults) std::cout << x << " ";
                         printf("\n");
 
                         model.printActivations();
-
                         return 1;
+
                     }
                 }
             }
+            std::cout << tmp << std::endl;
+
             return 0;
         }
     }
@@ -99,7 +103,6 @@ namespace Test {
 
         model.m_shape = { 3, 256, 1024, 4096, 4096, 1023, 256, 3 };
 
-
         model.init("AI");
 
         model.setInput({ 1, 1, 1 });
@@ -107,15 +110,21 @@ namespace Test {
         std::vector<float> output;
 
 
-
-        for (float i = 0; i < 10; i++) {
+        float total = 0;
+        int numberTests = 10;
+        for (int i = 0; i < numberTests; i++) {
             auto start = std::chrono::high_resolution_clock::now();
 
 
             output = model.feedForward();
 
-            std::cout << " + " << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start);
+            float duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+            total += duration;
+
+            // Total: 7.58581e+06 Average: 75858.1
+            std::cout << duration << " ";
         }
+        std::cout << "Total: " << total << " Average: " << total / numberTests << std::endl;
 
         return;
     }

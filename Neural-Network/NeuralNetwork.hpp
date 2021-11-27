@@ -12,6 +12,7 @@
 #include <typeinfo>
 #include <thread>
 #include <future>
+#include <stdlib.h>
 
 
 
@@ -36,7 +37,6 @@ public:
 
                 float m_activation = 0;
 
-                float activationFunction(float x);
                 //Every weight is set to defualtValue if spesified
                 Neuron(std::mt19937* gen, int numberOfNeuronsPrevLayer, const float defualtValue);
             };
@@ -49,7 +49,7 @@ public:
             // Every weight is set to defualtWeight if not eqaul to NULL
             ANN(std::mt19937* gen, int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
 
-            void getWeights(std::vector<std::vector<float>>* weights);
+            void writeWeights(std::vector<std::vector<float>>* weights);
 
             std::vector<float> getActivations();
 
@@ -57,7 +57,8 @@ public:
 
             void setActivation(std::vector<float>* a);
 
-            void getWeights1D(std::vector<float> *writeArray);
+            void writeWeights1D(std::vector<float> *writeArray);
+            float activationFunction(float x);
         };
     };
 

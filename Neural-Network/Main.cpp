@@ -129,7 +129,7 @@ int main() {
 
 	uint32_t discriminatorWin = 0;
 	uint32_t generatorWin = 0;
-	uint16_t numberOfTestInNaturalSelection = 100;
+	uint16_t numberOfTestInNaturalSelection = 10;
 	Image generatorImage;
 	generatorImage.height = 200;
 	generatorImage.width = 200;
@@ -224,35 +224,3 @@ int main() {
 	return 0;
 
 }
-
-
-
-/*	for (auto i = 1; i < Discriminator.m_numberLayers; i++) {
-		for (auto x = 0; x < Discriminator.m_layers[i].m_numberNeurons; x++) {
-			std::cout << Discriminator.m_layers[i].m_neurons[x].m_activation << " ";
-		}
-		std::cout << "\n";
-	}
-
-
-
-			uint32_t neuronNum = 0;
-
-		if (STEPSIZE < m_layers[layerNum].m_numberNeurons) {
-			for (; neuronNum < m_layers[layerNum].m_numberNeurons - STEPSIZE; neuronNum += STEPSIZE) {
-
-				m_layers[layerNum].m_neurons[neuronNum + 0].m_activation = m_layers[layerNum].m_neurons[neuronNum + 0].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 0].m_activation);
-				m_layers[layerNum].m_neurons[neuronNum + 1].m_activation = m_layers[layerNum].m_neurons[neuronNum + 1].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 1].m_activation);
-				m_layers[layerNum].m_neurons[neuronNum + 2].m_activation = m_layers[layerNum].m_neurons[neuronNum + 2].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 2].m_activation);
-				m_layers[layerNum].m_neurons[neuronNum + 3].m_activation = m_layers[layerNum].m_neurons[neuronNum + 3].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 3].m_activation);
-				m_layers[layerNum].m_neurons[neuronNum + 4].m_activation = m_layers[layerNum].m_neurons[neuronNum + 4].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 4].m_activation);
-				m_layers[layerNum].m_neurons[neuronNum + 5].m_activation = m_layers[layerNum].m_neurons[neuronNum + 5].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 5].m_activation);
-				m_layers[layerNum].m_neurons[neuronNum + 6].m_activation = m_layers[layerNum].m_neurons[neuronNum + 6].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 6].m_activation);
-				m_layers[layerNum].m_neurons[neuronNum + 7].m_activation = m_layers[layerNum].m_neurons[neuronNum + 7].activationFunction(m_layers[layerNum].m_neurons[neuronNum + 7].m_activation);
-			}
-		}
-		for (; neuronNum < m_layers[layerNum].m_numberNeurons; neuronNum++) {
-
-			m_layers[layerNum].m_neurons[neuronNum].m_activation = m_layers[layerNum].m_neurons[neuronNum].activationFunction(m_layers[layerNum].m_neurons[neuronNum].m_activation);
-
-		}*/

@@ -26,24 +26,6 @@ NeuralNet::Layer::ANN::Neuron::Neuron(std::mt19937* gen, int numberOfNeuronsPrev
     }
 }
 
-float NeuralNet::Layer::ANN::Neuron::activationFunction(float x) {
-   
-    return x;
-
-}
-
-/*
--0.548858 0.00775933 0.603525
-0.410437  0.681789   0.260143
--0.60173  -0.0700927 -0.480505
-0.128276  0.22018   -0.205762
--0.317934 0.930447  -0.291043 
-
-
--0.548858 0.410437 -0.60173 0.128276 -0.317934
-0.00775933 0.681789 -0.0700927 0.22018 0.930447
-0.603525 0.260143 -0.480505 -0.205762 -0.291043
-*/
 
 //
 // Layer class:
@@ -58,7 +40,13 @@ NeuralNet::Layer::ANN::ANN(std::mt19937* gen, int numberOfNeurons, int numberOfN
     }
 }
 
-void NeuralNet::Layer::ANN::getWeights(std::vector<std::vector<float>>* weight) {
+float NeuralNet::Layer::ANN::activationFunction(float x) {
+
+    return ACTIVATION_FUNCTION_CPU(x);
+
+}
+
+void NeuralNet::Layer::ANN::writeWeights(std::vector<std::vector<float>>* weight) {
 
     for (uint32_t i = 0; i < this->m_numberNeurons; i++) {
         weight->emplace_back(m_neurons[i].m_weights);
@@ -97,17 +85,13 @@ void NeuralNet::Layer::ANN::setActivation(std::vector<float>* a) {
 }
 
 
-void NeuralNet::Layer::ANN::getWeights1D(std::vector<float> *writeArray) {
-    //std::cout << "\t totalsize: " << totalsize << " " << m_neurons.front().m_weights.size() << std::endl;
+void NeuralNet::Layer::ANN::writeWeights1D(std::vector<float> *writeArray) {
 
-    writeArray->clear();
-    writeArray->reserve(m_numberNeurons * m_neurons.front().m_weights.size());
+    writeArray->reserve(writeArray->size() + m_numberNeurons * m_neurons.front().m_weights.size());
 
     
-    for (uint32_t x = 0; x < m_numberNeurons; x++) {
-        for (size_t y = 0; y < m_neurons.front().m_weights.size(); y++) {
-            writeArray->emplace_back(m_neurons[x].m_weights[y]);
-        }
+    for (const auto &v : m_neurons) {
+        writeArray->insert(writeArray->end(), v.m_weights.begin(), v.m_weights.end());
     }
     
 }
@@ -142,7 +126,6 @@ void NeuralNet::setRandomInput() {
 
 void NeuralNet::init(std::string name, const float defualtWeight) {
 
-    // Random number generator
     std::mt19937 gen(static_cast<unsigned int>( std::chrono::system_clock::now().time_since_epoch().count()));
 
     m_name = name;
@@ -150,9 +133,7 @@ void NeuralNet::init(std::string name, const float defualtWeight) {
     // clear layers if init is already called
     m_layers.clear();
 
-    // Reserve memory
     m_layers.reserve(m_shape.size());
-
 
     // Adds placeholder neurons
     m_layers.emplace_back(Layer::ANN(&gen, m_shape[0]));
@@ -180,7 +161,7 @@ void NeuralNet::save(std::string path) {
 
     if (saveFile.is_open()) {
 
-        // Save name
+        // Save name of model
         saveFile.write(m_name.c_str(), m_name.size());
         saveFile.write("\0", sizeof(char)); 
 
@@ -241,7 +222,7 @@ void NeuralNet::load(std::string path) {
         std::cout << "Sizeof shape: " << sizeOfShape << std::endl;
         m_shape.resize(sizeOfShape);
         
-        // Get shape of network
+        // Get shape of model
         loadFile.read(reinterpret_cast<char*>(&m_shape[0]), sizeOfShape * sizeof(int));
         
         // Initialize without random weights
@@ -289,7 +270,7 @@ void NeuralNet::printWeightsAndBias() {
 
     std::cout << "Weight: \n";
 
-    // every colum is weights for one neuron
+    // every colum is the weights for one neuron
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
 
         for (uint32_t k = 0; k < m_layers[layerNum].m_neurons.front().m_weights.size(); k++) {
@@ -327,7 +308,7 @@ void NeuralNet::printActivations() {
 
         for (auto& neuron : m_layers[layerNum].m_neurons) {
 
-            std::cout << neuron.m_activation << " |";
+            std::cout << neuron.m_activation << " ";
         }
         std::cout << "\n";
     }
@@ -343,8 +324,6 @@ void NeuralNet::random() {
 
         for (uint32_t neuronNum = 0; neuronNum < m_layers[layerNum].m_numberNeurons; neuronNum++) {
 
-
-            // Choses numberOfWeights / 3 random weights and takes the average
             for (uint32_t weightNum = 0; weightNum < m_layers[layerNum].m_neurons[neuronNum].m_weights.size(); weightNum++) {
 
                 m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum] = static_cast<float>(gen()) / gen.max();
