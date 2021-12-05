@@ -81,7 +81,7 @@ Image loadVector(std::string path) {
 
 int main() {
 
-	Test::run(true, true);
+	Test::run(true, false);
 	Test::FeedForwardBenchmark();
 	return 0;
 

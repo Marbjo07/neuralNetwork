@@ -304,7 +304,7 @@ void NeuralNet::printActivations() {
 
     std::cout << "Activations: " << std::endl;
 
-    for (uint32_t layerNum = 0; layerNum < m_numberLayers; layerNum++) {
+    for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
 
         for (auto& neuron : m_layers[layerNum].m_neurons) {
 

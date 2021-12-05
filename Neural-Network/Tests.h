@@ -10,14 +10,14 @@ namespace Test {
         std::string passNotPass(int returnVal) {
 
             if (returnVal == 0) { return "   x    |            |\n"; }
-            return  "       |      x     | \n";
+                                  return  "       |      x     |\n";
         }
 
         bool caEqual(float a, float b) {
-            return ((a + 0.05 >= b) && (a - .05<= b));
+            return abs(a - b) < 0.0005;
         }
 
-        std::vector<float> matrixMul(NeuralNet* model) {
+        std::vector<std::vector<float>> matrixMul(NeuralNet* model) {
 
             float tmp = 0;
 
@@ -32,53 +32,84 @@ namespace Test {
                         tmp += (*model).m_layers[L].m_neurons[i].m_activation * (*model).m_layers[L + 1].m_neurons[k].m_weights[i];
                     }
 
-                    (*model).m_layers[L + 1].m_neurons[k].m_activation = (*model).m_layers[L + 1].activationFunction(tmp); //+ (*model).m_layers[L + 1].m_neurons[k].m_bias;
+                    (*model).m_layers[L + 1].m_neurons[k].m_activation = (*model).m_layers[L + 1].activationFunction(tmp) + (*model).m_layers[L + 1].m_neurons[k].m_bias;
                 }
             }
 
+            std::vector<std::vector<float>> out;
 
-            return (*model).m_layers.back().getActivations();
+            out.resize((*model).m_numberLayers);
+            for (auto i = 0; i < out.size(); i++) {
+                out[i] = (*model).m_layers[i].getActivations();
+            }
+
+
+
+            return out;
         }
 
         int FeedForwardTest(bool debug) {
 
-            NeuralNet model;
+            NeuralNet testModel;
 
-            model.addLayer(4);
-            model.addLayer(256);
+            testModel.m_shape = { 432, 364, 24, 64, 128};
 
 
-            model.init("FeedForwardTest");
+            testModel.init("FeedForwardTest");
 
-            model.setRandomInput();
+            testModel.setRandomInput();
 
-            std::vector<std::vector<float>> weights;
-            model.m_layers[1].writeWeights(&weights);
+            //int counter = 0;
+            //for (uint32_t layerNum = 0; layerNum < model.m_numberLayers; layerNum++) {
+            //
+            //    for (uint32_t neuronNum = 0; neuronNum < model.m_layers[layerNum].m_numberNeurons; neuronNum++) {
+            //
+            //        for (uint32_t weightNum = 0; weightNum < model.m_layers[layerNum].m_neurons[neuronNum].m_weights.size(); weightNum++) {
+            //
+            //            model.m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum] = counter;
+            //            counter++;
+            //        }
+            //
+            //    }
+            //
+            //}
 
-            std::vector<float> expectedResults = matrixMul(&model);
+            std::vector<std::vector<float>> expectedResults = matrixMul(&testModel);
             float tmp = 0;
-            for (auto k = 0; k < 4; k++) {
+            for (auto k = 0; k < 3; k++) {
             
+                std::vector<float> somthing = testModel.feedForward();
                 
-                std::vector<float> output = model.feedForward();
-                for (size_t i = 0; i < output.size(); i++) {
+                float output = 0;
+                float expectation = 0;
+
+                for (int l = 0; l < testModel.m_numberLayers; l++) {
                     
-                    tmp += abs(abs(model.m_layers[1].m_neurons[i].m_activation) - abs(expectedResults[i]));
-              
-                    if (!caEqual(output[i], expectedResults[i])) {
-                        std::cout << "Faild at: " << i << " iteration: " << k << " " << std::endl;
-                        std::cout << "Output: " << output[i] << " expectation: " << expectedResults[i] << std::endl;
-                        for (auto x : expectedResults) std::cout << x << " ";
-                        printf("\n");
+                    for (int n = 0; n < testModel.m_layers[l].m_numberNeurons; n++) {
 
-                        model.printActivations();
-                        return 1;
+                        output = testModel.m_layers[l].m_neurons[n].m_activation;
+                        expectation = expectedResults[l][n];
+                        
+                        tmp += abs(output - expectation);
 
+                        if (!caEqual(output, expectation)) {
+                            
+                            printf("Faild at (layer, neuron): (%d, %d)  Iteration: %d \nOutput: %.6f  Expectation: %.6f\n", l, n, k, output, expectation);
+                            //for (auto x : expectedResults) std::cout << x << " ";
+                            //printf("\n");
+                            //
+                            //model.printActivations();
+                            //printf("\n\n\n\n");
+                            //model.printWeightsAndBias();
+                            return 1;
+
+                        }
                     }
                 }
             }
-            std::cout << tmp << std::endl;
-
+            if (debug) {
+                std::cout << "Error: " << tmp << std::endl;
+            }
             return 0;
         }
     }
@@ -105,7 +136,7 @@ namespace Test {
 
         model.init("AI");
 
-        model.setInput({ 1, 1, 1 });
+        model.setRandomInput();
 
         std::vector<float> output;
 
