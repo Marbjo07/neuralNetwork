@@ -28,36 +28,20 @@ public:
         class ANN {
 
         public:
-            class Neuron {
-            public:
-
-                // Connections from this neuron to the prev layers neurons
-                std::vector<float> m_weights;
-                float m_bias = 1;
-
-                float m_activation = 0;
-
-                //Every weight is set to defualtValue if spesified
-                Neuron(std::mt19937* gen, int numberOfNeuronsPrevLayer, const float defualtValue);
-            };
-
 
             uint32_t m_numberNeurons = 0;
 
-            std::vector<Neuron> m_neurons;
+            std::vector<float> m_bias;
+            std::vector<float> m_weights;
+            std::vector<float> m_activation;
 
             // Every weight is set to defualtWeight if not eqaul to NULL
             ANN(std::mt19937* gen, int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
 
             void writeWeights(std::vector<std::vector<float>>* weights);
 
-            std::vector<float> getActivations();
-
-            std::vector<float> getBias();
-
             void setActivation(std::vector<float>* a);
 
-            void writeWeights1D(std::vector<float> *writeArray);
             float activationFunction(float x);
         };
     };

@@ -7,36 +7,26 @@
 
 
 //
-// Neuron class:
+// Layer class:
 //
-#define RANGE 0.05f
-NeuralNet::Layer::ANN::Neuron::Neuron(std::mt19937* gen, int numberOfNeuronsPrevLayer, const float defualtValue) {
 
-    if (defualtValue != NULL) {
-        m_weights.resize(numberOfNeuronsPrevLayer, defualtValue);
+#define RANGE 0.05f
+NeuralNet::Layer::ANN::ANN(std::mt19937* gen, int numberOfNeurons, int numberOfNeuronsPrevLayer, const float defualtWeight) {
+    m_numberNeurons = numberOfNeurons;
+    m_activation.resize(numberOfNeurons, 0);
+    m_bias.resize(numberOfNeurons, 1);
+
+    if (defualtWeight != NULL) {
+        m_weights.resize(numberOfNeuronsPrevLayer * numberOfNeurons, defualtWeight);
     }
     else {
         // Random numbers between -1 and 1
                                              // 2.0f / float(gen.max())
-        m_weights.resize(numberOfNeuronsPrevLayer, 4.656612873e-10F);
-        for (auto i = 0; i < numberOfNeuronsPrevLayer; i++) {
+        m_weights.resize(numberOfNeuronsPrevLayer * numberOfNeurons, 2.0f / float(gen->max()));
+        for (auto i = 0; i < m_weights.size(); i++) {
             m_weights[i] *= float((*gen)()) * RANGE;
             m_weights[i] -= RANGE;
         }
-    }
-}
-
-
-//
-// Layer class:
-//
-
-
-NeuralNet::Layer::ANN::ANN(std::mt19937* gen, int numberOfNeurons, int numberOfNeuronsPrevLayer, const float defualtWeight) {
-    m_numberNeurons = numberOfNeurons;
-    m_neurons.reserve(numberOfNeurons);
-    for (uint32_t i = 0; i < m_numberNeurons; i++) {
-        m_neurons.emplace_back(Neuron(gen, numberOfNeuronsPrevLayer, defualtWeight));
     }
 }
 
@@ -49,51 +39,16 @@ float NeuralNet::Layer::ANN::activationFunction(float x) {
 void NeuralNet::Layer::ANN::writeWeights(std::vector<std::vector<float>>* weight) {
 
     for (uint32_t i = 0; i < this->m_numberNeurons; i++) {
-        weight->emplace_back(m_neurons[i].m_weights);
+        weight->emplace_back(m_weights[i]);
     }
 
 }
 
-
-std::vector<float> NeuralNet::Layer::ANN::getBias() {
-    std::vector<float> a; 
-    a.reserve(m_numberNeurons);
-
-    for (uint32_t i = 0; i < m_numberNeurons; i++) {
-        a.emplace_back(m_neurons[i].m_bias);
-
-    }
-    return a;
-}
-
-std::vector<float> NeuralNet::Layer::ANN::getActivations() {
-
-    std::vector<float> out;
-    out.reserve(m_numberNeurons);
-    
-    for (uint32_t i = 0; i < m_numberNeurons; i++) {
-        out.emplace_back(m_neurons[i].m_activation);
-    }
-
-    return out;
-}
 void NeuralNet::Layer::ANN::setActivation(std::vector<float>* a) {
 
     for (uint32_t i = 0; i < a->size(); i++) {
-        m_neurons[i].m_activation = (*a)[i];
+        m_activation[i] = (*a)[i];
     }
-}
-
-
-void NeuralNet::Layer::ANN::writeWeights1D(std::vector<float> *writeArray) {
-
-    writeArray->reserve(writeArray->size() + m_numberNeurons * m_neurons.front().m_weights.size());
-
-    
-    for (const auto &v : m_neurons) {
-        writeArray->insert(writeArray->end(), v.m_weights.begin(), v.m_weights.end());
-    }
-    
 }
 
 //
@@ -108,8 +63,12 @@ void NeuralNet::addLayer(int numberOfNeurons) {
 
 
 void NeuralNet::setInput(std::vector<float> input) {
+    if (m_numberLayers <= 0) {
+        std::cout << "\033[1;31ERROR:\033[0m In setInput() no valid layers. Number of layers: " << m_numberLayers << " Caused by : " << m_name << std::endl;
+        return;
+    }
     if (input.size() != m_shape[0]) {
-        std::cout << "\033[1;33mWARNING: \033[0;0m In setInput() input size not matching networks first layer. Unexpected behavior may occur. Input size: " << input.size() << " first layer size: " << m_shape[0] << ". Caused by: " << m_name << std::endl;
+        std::cout << "\033[1;33mWARNING: \033[0;0m In setInput() input size not matching networks first layer make sure to call init(). Every activation missing set to zero and extra values deleted. \nInput size: " << input.size() << " first layer size: " << m_shape[0] << ". Caused by: " << m_name << std::endl;
         input.resize(m_shape[0], 1);
     }
 
@@ -117,9 +76,12 @@ void NeuralNet::setInput(std::vector<float> input) {
 }
 
 void NeuralNet::setRandomInput() {
-    
+    if (m_numberLayers <= 0){
+        std::cout << "\033[1;31ERROR:\033[0m In setRandomInput() no valid layers. Number of layers: " << m_numberLayers << " Caused by : " << m_name << std::endl;
+        return;
+    }
     for (uint32_t i = 0; i < m_layers.front().m_numberNeurons; i++) {
-        m_layers.front().m_neurons[i].m_activation = (static_cast<float> (rand()) / RAND_MAX) * 2 - 1;
+        m_layers.front().m_activation[i] = (static_cast<float> (rand()) / RAND_MAX) * 2 - 1;
     }
 
 }
@@ -175,17 +137,15 @@ void NeuralNet::save(std::string path) {
 
         // Save weights
         for (auto layer : m_layers) {
-            for (auto neuron : layer.m_neurons) {
-                for (auto weight : neuron.m_weights) {
-                    saveFile.write((const char*)&weight, sizeof(float));
-                }
+            for (auto weight : layer.m_weights) {
+                saveFile.write((const char*)&weight, sizeof(float));
             }
-        } 
+        }
 
         // Save bias
         for (auto layer : m_layers) {
-            for (auto neuron : layer.m_neurons) {
-                saveFile.write((const char*)&neuron.m_bias, sizeof(float));
+            for (auto bias : layer.m_bias) {
+                saveFile.write((const char*)&bias, sizeof(float));
             }
         }
 
@@ -232,22 +192,20 @@ void NeuralNet::load(std::string path) {
         // Load value of weights
         for (uint32_t layer = 0; layer < m_numberLayers; layer++) {
 
-            for (uint32_t neuron = 0; neuron < m_layers[layer].m_numberNeurons; neuron++) {
-            
-                for (uint32_t weight = 0; weight < m_layers[layer].m_neurons[neuron].m_weights.size(); weight++) {
-                    loadFile.read((char*)&m_layers[layer].m_neurons[neuron].m_weights[weight], sizeof(float));
-                
-                }
-            
+            for (uint32_t weight = 0; weight < m_layers[layer].m_weights.size(); weight++) {
+
+                loadFile.read((char*)&m_layers[layer].m_weights[weight], sizeof(float));
+
             }
-        
+
+
         }
 
         // Load value of bias
         for (uint32_t layer = 0; layer < m_numberLayers; layer++) {
             for (uint32_t neuron = 0; neuron < m_layers[layer].m_numberNeurons; neuron++) {
         
-                loadFile.read((char*)&m_layers[layer].m_neurons[neuron].m_bias, sizeof(float));
+                loadFile.read((char*)&m_layers[layer].m_bias[neuron], sizeof(float));
             
             }
         }
@@ -273,12 +231,12 @@ void NeuralNet::printWeightsAndBias() {
     // every colum is the weights for one neuron
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
 
-        for (uint32_t k = 0; k < m_layers[layerNum].m_neurons.front().m_weights.size(); k++) {
+        for (uint32_t k = 0; k < m_layers[layerNum - 1].m_numberNeurons; k++) {
 
             for (uint32_t i = 0; i < m_layers[layerNum].m_numberNeurons; i++) {
 
 
-                std::cout << m_layers[layerNum].m_neurons[i].m_weights[k] << "  ";
+                std::cout << m_layers[layerNum].m_weights[k * m_layers[layerNum].m_numberNeurons + i] << "  ";
             }
             std::cout << "\n";
         }
@@ -289,8 +247,8 @@ void NeuralNet::printWeightsAndBias() {
     std::cout << "Bias: \n";
     for (auto& layer : m_layers) {
 
-        for (auto& neuron : layer.m_neurons) {
-            std::cout << neuron.m_bias << " | ";
+        for (auto& bias : layer.m_bias) {
+            std::cout << bias << " | ";
         }
         std::cout << "\n";
     }
@@ -306,16 +264,16 @@ void NeuralNet::printActivations() {
 
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
 
-        for (auto& neuron : m_layers[layerNum].m_neurons) {
+        for (auto& activation : m_layers[layerNum].m_activation) {
 
-            std::cout << neuron.m_activation << " ";
+            std::cout << activation << " ";
         }
         std::cout << "\n";
     }
 
 }
 
-void NeuralNet::random() {
+/*void NeuralNet::random() {
     auto t1 = std::chrono::high_resolution_clock::now();
 
     std::mt19937 gen((uint32_t)time(NULL));
@@ -338,22 +296,18 @@ void NeuralNet::random() {
     std::cout << "Duration in miliseconds: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1).count() << std::endl;
 
 }
-
+*/
 
 float NeuralNet::sumOfWeightsAndBias() {
     float sum{};
 
-    for (auto &layer : m_layers) {
+    for (auto& layer : m_layers) {
 
-        for (auto &neuron : layer.m_neurons) {
-            
-            for (auto &weight : neuron.m_weights) {
-                sum += float(weight);
-            }
+        for (auto& weight : layer.m_weights) {
+            sum += float(weight);
         }
     }
 
     return sum;
 }
-
 #endif // !NEURALNETWORK_CPP

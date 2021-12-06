@@ -50,33 +50,6 @@ float randomNumberGenerator()
     return (float)z * 4.656612873e-10F - 1;
 }
 
-void mutateNeuron(float* bias, std::vector<float>* weights, float mutationStrength, float offset) {
-    uint32_t weightNum = 0;
-    if (weights->size() > 8)
-    {
-        for (; weightNum < weights->size() - 8; weightNum += 8) {
-
-            (*weights)[weightNum + 0] += randomNumberGenerator() * mutationStrength;
-            (*weights)[weightNum + 1] += randomNumberGenerator() * mutationStrength;
-            (*weights)[weightNum + 2] += randomNumberGenerator() * mutationStrength;
-            (*weights)[weightNum + 3] += randomNumberGenerator() * mutationStrength;
-            (*weights)[weightNum + 4] += randomNumberGenerator() * mutationStrength;
-            (*weights)[weightNum + 5] += randomNumberGenerator() * mutationStrength;
-            (*weights)[weightNum + 6] += randomNumberGenerator() * mutationStrength;
-            (*weights)[weightNum + 7] += randomNumberGenerator() * mutationStrength;
-        }
-
-    }
-    else {
-        for (; weightNum < weights->size(); weightNum++) {
-
-            (*weights)[weightNum] += randomNumberGenerator() * mutationStrength;
-
-        }
-    }
-    (*bias) += randomNumberGenerator() * mutationStrength;
-
-}
 
 
 // For every weight and bias adds a random value between -1 and 1
@@ -84,10 +57,37 @@ void mergeWithRandomModel(NeuralNet* model, float mutationStrength) {
     std::cout << "Sum: " << model->sumOfWeightsAndBias() << " -> ";
 
     for (uint32_t layerNum = 0; layerNum < model->m_numberLayers; layerNum++) {
+
+
+        uint32_t weightNum = 0;
+        if (model->m_layers[layerNum].m_weights.size() > 8)
+        {
+            for (; weightNum < model->m_layers[layerNum].m_weights.size() - 8; weightNum += 8) {
+
+                model->m_layers[layerNum].m_weights[weightNum + 0] += randomNumberGenerator() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 1] += randomNumberGenerator() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 2] += randomNumberGenerator() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 3] += randomNumberGenerator() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 4] += randomNumberGenerator() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 5] += randomNumberGenerator() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 6] += randomNumberGenerator() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 7] += randomNumberGenerator() * mutationStrength;
+            }
+
+        }
+        else {
+            for (; weightNum < model->m_layers[layerNum].m_weights.size(); weightNum++) {
+
+                model->m_layers[layerNum].m_weights[weightNum] += randomNumberGenerator() * mutationStrength;
+
+            }
+        }
+
         for (uint32_t neuronNum = 0; neuronNum < model->m_layers[layerNum].m_numberNeurons; neuronNum++) {
-            mutateNeuron(&model->m_layers[layerNum].m_neurons[neuronNum].m_bias, &model->m_layers[layerNum].m_neurons[neuronNum].m_weights, mutationStrength, (float)rand());
+            model->m_layers[layerNum].m_bias[neuronNum] += randomNumberGenerator() * mutationStrength;
         }
     }
+
     std::cout << model->sumOfWeightsAndBias() << "   \t\t";
 
 
@@ -147,7 +147,7 @@ void NeuralNet::naturalSelection(
 
             std::cout << "with ";
             if (checkerModel != NULL) {
-                printVector(checkerModel->m_layers.back().getActivations());
+                printVector(checkerModel->m_layers.back().m_activation);
             }
             else {
                 printVector(output);

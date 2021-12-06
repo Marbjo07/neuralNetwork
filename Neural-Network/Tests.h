@@ -17,42 +17,33 @@ namespace Test {
             return abs(a - b) < 0.0005;
         }
 
-        std::vector<std::vector<float>> matrixMul(NeuralNet* model) {
+        std::vector<float> matrixMul(NeuralNet* model) {
 
             float tmp = 0;
 
-            for (uint32_t L = 0; L < (*model).m_numberLayers - 1; L++) {
+            for (uint32_t L = 1; L < (*model).m_numberLayers; L++) {
 
-                for (uint32_t k = 0; k < (*model).m_layers[L + 1].m_numberNeurons; k++) {
+                for (uint32_t k = 0; k < (*model).m_layers[L].m_numberNeurons; k++) {
 
                     tmp = 0;
 
-                    for (uint32_t i = 0; i < (*model).m_layers[L].m_numberNeurons; i++) {
+                    for (uint32_t i = 0; i < (*model).m_layers[L-1].m_numberNeurons; i++) {
 
-                        tmp += (*model).m_layers[L].m_neurons[i].m_activation * (*model).m_layers[L + 1].m_neurons[k].m_weights[i];
+                        tmp += (*model).m_layers[L-1].m_activation[i] * (*model).m_layers[L].m_weights[k * (*model).m_layers[L - 1].m_numberNeurons + i];
                     }
 
-                    (*model).m_layers[L + 1].m_neurons[k].m_activation = (*model).m_layers[L + 1].activationFunction(tmp) + (*model).m_layers[L + 1].m_neurons[k].m_bias;
+                    (*model).m_layers[L].m_activation[k] = ACTIVATION_FUNCTION_CPU(tmp) + (*model).m_layers[L].m_bias[k];
                 }
             }
 
-            std::vector<std::vector<float>> out;
-
-            out.resize((*model).m_numberLayers);
-            for (auto i = 0; i < out.size(); i++) {
-                out[i] = (*model).m_layers[i].getActivations();
-            }
-
-
-
-            return out;
+            return (*model).m_layers.back().m_activation;
         }
 
         int FeedForwardTest(bool debug) {
 
             NeuralNet testModel;
 
-            testModel.m_shape = { 432, 364, 24, 64, 128};
+            testModel.m_shape = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 };
 
 
             testModel.init("FeedForwardTest");
@@ -74,7 +65,7 @@ namespace Test {
             //
             //}
 
-            std::vector<std::vector<float>> expectedResults = matrixMul(&testModel);
+            std::vector<float> expectedResults = matrixMul(&testModel);
             float tmp = 0;
             for (auto k = 0; k < 3; k++) {
             
@@ -83,18 +74,18 @@ namespace Test {
                 float output = 0;
                 float expectation = 0;
 
-                for (int l = 0; l < testModel.m_numberLayers; l++) {
+                //for (uint32_t l = 0; l < testModel.m_numberLayers; l++) {
                     
-                    for (int n = 0; n < testModel.m_layers[l].m_numberNeurons; n++) {
+                    for (uint32_t n = 0; n < testModel.m_layers.back().m_numberNeurons; n++) {
 
-                        output = testModel.m_layers[l].m_neurons[n].m_activation;
-                        expectation = expectedResults[l][n];
+                        output = testModel.m_layers.back().m_activation[n];
+                        expectation = expectedResults[n];
                         
                         tmp += abs(output - expectation);
 
                         if (!caEqual(output, expectation)) {
                             
-                            printf("Faild at (layer, neuron): (%d, %d)  Iteration: %d \nOutput: %.6f  Expectation: %.6f\n", l, n, k, output, expectation);
+                            printf("Faild at (neuron): (%d)  Iteration: %d \nOutput: %.6f  Expectation: %.6f\n", n, k, output, expectation);
                             //for (auto x : expectedResults) std::cout << x << " ";
                             //printf("\n");
                             //
@@ -105,7 +96,7 @@ namespace Test {
 
                         }
                     }
-                }
+               //}
             }
             if (debug) {
                 std::cout << "Error: " << tmp << std::endl;
@@ -142,17 +133,16 @@ namespace Test {
 
 
         float total = 0;
-        int numberTests = 10;
-        for (int i = 0; i < numberTests; i++) {
+        uint32_t numberTests = 10;
+        for (uint32_t i = 0; i < numberTests; i++) {
             auto start = std::chrono::high_resolution_clock::now();
 
 
             output = model.feedForward();
 
-            float duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
             total += duration;
 
-            // Total: 7.58581e+06 Average: 75858.1
             std::cout << duration << " ";
         }
         std::cout << "Total: " << total << " Average: " << total / numberTests << std::endl;
@@ -164,13 +154,47 @@ namespace Test {
     //
     // model shape = {3, 256, 1024, 4096, 4096, 1023, 256, 3}
     // 
-    //                 | Data points in microseconds                                               |   Total |  Average |
-    // CPU             | 974888 995912 975568 993463 1023107 1004664 994783 1040392 1000714 996192 | 9999683 | 999968.3 |
-    // GPU not correct |  13804  13760  13829  14235   13666   13674  13884   13773   13782  13736 |  138143 |  13814.3 |
-    // GPU correct     | 115582 121807 134584 120241  120700  120283 127042  124897  134610 124214 | 1243960 | 124396   |
+    // Feedforward()                            | Data points in microseconds                                               |   Total |  Average |
+    // CPU                                      | 974888 995912 975568 993463 1023107 1004664 994783 1040392 1000714 996192 | 9999683 | 999968.3 |
+    // GPU not correct                          |  13804  13760  13829  14235   13666   13674  13884   13773   13782  13736 |  138143 |  13814.3 |
+    // GPU correct                              | 115582 121807 134584 120241  120700  120283 127042  124897  134610 124214 | 1243960 |  124396  |
+    // GPU changed structure of neuralNet class |  39762  40986  42278  39139   37990   37074  39181   39773   36604  37715 |  390502 |  39050.2 |
 
 
+    void InitBenchmark() {
+#include <chrono>
+#include <vector>
+        srand((uint32_t)time(NULL));
 
+        NeuralNet model;
+
+
+        model.m_shape = { 3, 256, 1024, 4096, 4096, 1024, 256, 3 };
+
+        float total = 0;
+        uint32_t numberTests = 10;
+        for (uint32_t i = 0; i < numberTests; i++) {
+            auto start = std::chrono::high_resolution_clock::now();
+
+            model.init("AI");
+
+
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+            total += duration;
+
+            std::cout << duration << " ";
+        }
+        std::cout << "Total: " << total << " Average: " << total / numberTests << std::endl;
+
+        return;
+    }
+
+    // One data point is one feedforward call excludes the highest data point
+    //
+    // model shape = {3, 256, 1024, 4096, 4096, 1023, 256, 3}
+    // 
+    // Init() | Data points in microseconds                                           |   Total     | Average |
+    // v1     | 221301 252704 200037 200320 201713 198987 198042 198444 199069 202674 | 2.07329e+06 |  207329 |
     void MergeFunctionBenchmark() {
 
 

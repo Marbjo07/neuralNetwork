@@ -83,12 +83,13 @@ int main() {
 
 	Test::run(true, false);
 	Test::FeedForwardBenchmark();
+	Test::InitBenchmark();
 	return 0;
 
 	std::cout << "Hello World\n";
 
 
-	srand(time(NULL) * 12398239);
+	srand(time((time_t*)(NULL)) * 12398239);
 	int random = rand() % 109223859;
 	std::cout << "seed: " << random << std::endl;
 	srand(random);
