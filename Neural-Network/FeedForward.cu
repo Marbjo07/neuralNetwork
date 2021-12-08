@@ -31,7 +31,7 @@ __global__ void matrixMul(const float* activations, const float* weights, const 
 }
 
 
-std::vector<float> NeuralNet::feedForward() {
+float* NeuralNet::feedForward() {
 
     int* d_Shape;
     cudaMalloc(&d_Shape, m_shape.size() * sizeof(int));
@@ -42,15 +42,15 @@ std::vector<float> NeuralNet::feedForward() {
 
         // Allocate 3 arrays on GPU
         float* d_Activations, * d_Weights, * d_Bias, * d_Results;
-        cudaMalloc(&d_Activations, m_layers[layerNum - 1].m_numberNeurons * sizeof(float));
-        cudaMalloc(&d_Weights, m_layers[layerNum].m_weights.size() * sizeof(float));
-        cudaMalloc(&d_Results, m_layers[layerNum].m_numberNeurons * sizeof(float));
-        cudaMalloc(&d_Bias, m_layers[layerNum].m_numberNeurons * sizeof(float));
+        cudaMalloc(&d_Weights,     m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons * sizeof(float));
+        cudaMalloc(&d_Activations,                                      m_layers[layerNum - 1].m_numberNeurons * sizeof(float));
+        cudaMalloc(&d_Results,     m_layers[layerNum].m_numberNeurons                                          * sizeof(float));
+        cudaMalloc(&d_Bias,        m_layers[layerNum].m_numberNeurons                                          * sizeof(float));
 
-        cudaMemcpyAsync(d_Weights, m_layers[layerNum].m_weights.data(), m_layers[layerNum].m_weights.size() * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpyAsync(d_Activations, m_layers[layerNum - 1].m_activation.data(), m_layers[layerNum - 1].m_activation.size() * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpyAsync(d_Shape, m_shape.data(), m_shape.size() * sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpyAsync(d_Bias, m_layers[layerNum].m_bias.data(), m_layers[layerNum].m_numberNeurons * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpyAsync(d_Weights,     m_layers[layerNum].m_weights,        m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpyAsync(d_Activations, m_layers[layerNum - 1].m_activation, m_layers[layerNum - 1].m_numberNeurons * sizeof(float),                                      cudaMemcpyHostToDevice);
+        cudaMemcpyAsync(d_Shape,       m_shape.data(),                      m_shape.size() * sizeof(int),                                                                cudaMemcpyHostToDevice);
+        cudaMemcpyAsync(d_Bias,        m_layers[layerNum].m_bias,           m_layers[layerNum].m_numberNeurons * sizeof(int),                                            cudaMemcpyHostToDevice);
 
 
         matrixMul << <DimBlock, DimGrid >> > (d_Activations, d_Weights, d_Bias, d_Results, d_Shape, layerNum);
@@ -59,6 +59,7 @@ std::vector<float> NeuralNet::feedForward() {
 
         cudaMemcpy(&m_layers[layerNum].m_activation[0], d_Results, m_layers[layerNum].m_numberNeurons * sizeof(float), cudaMemcpyDeviceToHost);
 
+        //for (auto i = 0; i < m_layers[layerNum].m_numberNeurons; i++)  printf("%.6f ", m_layers[layerNum].m_activation[i]);
 
         cudaFree(d_Activations);
         cudaFree(d_Weights);

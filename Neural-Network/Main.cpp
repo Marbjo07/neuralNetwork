@@ -82,7 +82,7 @@ int main() {
 
 	Test::run(true, false);
 	Test::FeedForwardBenchmark();
-	//Test::InitBenchmark();
+	Test::InitBenchmark();
 	return 0;
 
 	std::cout << "Hello World\n";
@@ -133,7 +133,7 @@ int main() {
 	Image generatorImage;
 	generatorImage.height = 200;
 	generatorImage.width = 200;
-	std::vector<float> output;
+	float* output;
 	int i = 0;
 	float prevSumOfWeightsAndBias;
 	float sumOfWeightsAndBias = 0;
@@ -142,7 +142,7 @@ int main() {
 	float mutationStrengthDiscriminator = .1f;
 
 	float quitThreshold = .1f;
-
+	std::vector<float> sampelInput = { 0.5, 0.5,0.5 };
 
 	while (true) {
 		for (const auto entry : std::filesystem::directory_iterator(path)) {
@@ -152,14 +152,14 @@ int main() {
 			std::cout << "Fakeface: " << fakeFace << std::endl;
 
 
-			Generator.setInput({0, 0, 0});
+			Generator.setInput(sampelInput.data());
 
 			if (fakeFace) {
 				Discriminator.setInput(Generator.feedForward());
 
 			}
 			else {
-				Discriminator.setInput(loadVector(entry.path().generic_string()).data);
+				Discriminator.setInput(loadVector(entry.path().generic_string()).data.data());
 			}
 
 
@@ -207,8 +207,13 @@ int main() {
 			i++;
 
 			if (i % 25 == 0) {
-				Generator.setInput({ 0.5,0.5,0.5 });
-				generatorImage.data = Generator.feedForward();
+				
+				Generator.setInput(sampelInput.data());
+				output = Generator.feedForward();
+
+				generatorImage.data.clear();
+				generatorImage.data.insert(generatorImage.data.end(), &output[0], &output[SIZEOF(output)]);
+
 				generatorImage.saveAsImageFile("E:/desktop/aiOutput/image" + std::to_string(i) + ".png", generatorImage.width, generatorImage.height);
 				Discriminator.save(SAVE_AND_LOAD_PATH_DISCRIMINATOR);
 				Generator.save(SAVE_AND_LOAD_PATH_GENERATOR);

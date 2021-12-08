@@ -39,11 +39,11 @@ void showCase() {
     model.init("AI");
 
     // Output of model
-    std::vector<float> output = model.feedForward();
+    float* output = model.feedForward();
 
     // Print output
     std::cout << "Output: ";
-    for (auto x : output) std::cout << x << " | ";
+    for (auto i = 0; i < SIZEOF(output);i++) std::cout << output[i] << " | ";
     std::cout << "\n";
 
 
@@ -51,7 +51,8 @@ void showCase() {
         for (float i = 0; i < 10; i++) {
 
             // Sets input
-            model.setInput({ i });
+            std::vector<float> x = { i };
+            model.setInput(x.data());
 
 
             // 1. Mutates the original model.
@@ -66,6 +67,9 @@ void showCase() {
         }
     }
 
+
+    // Saving and Loading is not nesseary but its just shown here.
+    
     // Saves the model to a bin file.
     model.save(savePath);
 
@@ -78,7 +82,7 @@ void showCase() {
     output = model.feedForward();
 
     std::cout << "Output: ";
-    for (auto x : output) std::cout << x << " | ";
+    for (auto i = 0; i < SIZEOF(output); i++) std::cout << output[i] << " | ";
     std::cout << "\n";
 
     // Prints sum of weights and bias used in debuging.

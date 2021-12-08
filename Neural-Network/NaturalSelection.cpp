@@ -8,72 +8,27 @@
 #ifndef NATURALSELECTION_CPP
 #define NATURALSELECTION_CPP
 
-template<typename T>
-void printVector(std::vector<T> vector) {
-    for (auto i : vector) {
+void printArray(float* x) {
+    for (auto i = 0; i < SIZEOF(x); i++) {
         std::cout << i << " | ";
     }
 }
 
 
-float NeuralNet::MAELossFunction(std::vector<float> output, std::vector<float> target) {
+float NeuralNet::MAELossFunction(float* output, std::vector<float> target) {
     float e{};
 
-    for (auto i = 0; i < output.size() && i < target.size(); i++)
+    for (auto i = 0; i < sizeof(output) || i < target.size(); i++)
         e += std::abs(target[i] - output[i]);
-    return e / output.size();
+    return e / SIZEOF(output);
 }
 
-float NeuralNet::MSELossFunction(std::vector<float> output, std::vector<float> target) {
+float NeuralNet::MSELossFunction(float* output, std::vector<float> target) {
     float e{};
-    for (auto i = 0; i < output.size() && i < target.size(); i++) {
+    for (auto i = 0; i < sizeof(output) || i < target.size(); i++) {
         e += (float)std::pow(target[i] - output[i], 2);
     }
     return e;
-}
-
-
-
-
-// For every weight and bias adds a random value between -1 and 1
-void mergeWithRandomModel(NeuralNet* model, float mutationStrength) {
-    std::cout << "Sum: " << model->sumOfWeightsAndBias() << " -> ";
-
-    for (uint32_t layerNum = 0; layerNum < model->m_numberLayers; layerNum++) {
-
-
-        uint32_t weightNum = 0;
-        if (model->m_layers[layerNum].m_weights.size() > 8)
-        {
-            for (; weightNum < model->m_layers[layerNum].m_weights.size() - 8; weightNum += 8) {
-
-                model->m_layers[layerNum].m_weights[weightNum + 0] += Random::Default() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 1] += Random::Default() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 2] += Random::Default() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 3] += Random::Default() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 4] += Random::Default() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 5] += Random::Default() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 6] += Random::Default() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 7] += Random::Default() * mutationStrength;
-            }
-
-        }
-        else {
-            for (; weightNum < model->m_layers[layerNum].m_weights.size(); weightNum++) {
-
-                model->m_layers[layerNum].m_weights[weightNum] += Random::Default() * mutationStrength;
-
-            }
-        }
-
-        for (uint32_t neuronNum = 0; neuronNum < model->m_layers[layerNum].m_numberNeurons; neuronNum++) {
-            model->m_layers[layerNum].m_bias[neuronNum] += Random::Default() * mutationStrength;
-        }
-    }
-
-    std::cout << model->sumOfWeightsAndBias() << "   \t\t";
-
-
 }
 
 void NeuralNet::naturalSelection(
@@ -109,9 +64,9 @@ void NeuralNet::naturalSelection(
 
     for (auto gen = 0; gen < numberOfTest; gen++) {
 
-        mergeWithRandomModel(&tempModel, mutationStrength);
+        //mergeWithRandomModel(&tempModel, mutationStrength);
 
-        std::vector<float> output = tempModel.feedForward();
+        float* output = tempModel.feedForward();
 
         if (checkerModel != NULL) {
             checkerModel->setInput(output);
@@ -130,10 +85,10 @@ void NeuralNet::naturalSelection(
 
             std::cout << "with ";
             if (checkerModel != NULL) {
-                printVector(checkerModel->m_layers.back().m_activation);
+                printArray(checkerModel->m_layers.back().m_activation);
             }
             else {
-                printVector(output);
+                printArray(output);
             }
 
             std::cout << " as output and " << tempError << " as error." << std::endl;

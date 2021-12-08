@@ -12,7 +12,7 @@ namespace Test {
 
         bool caEqual(float a, float b);
 
-        std::vector<float> matrixMul(NeuralNet* model);
+        float* matrixMul(NeuralNet* model);
 
         int FeedForwardTest(bool debug);
     }

@@ -29,16 +29,16 @@ public:
 
             uint32_t m_numberNeurons = 0;
 
-            std::vector<float> m_bias;
-            std::vector<float> m_weights;
-            std::vector<float> m_activation;
+            float* m_bias;
+            float* m_weights;
+            float* m_activation;
 
             // Every weight is set to defualtWeight if its not eqaul to NULL
             ANN(int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
 
             void writeWeights(std::vector<std::vector<float>>* weights);
 
-            void setActivation(std::vector<float>* a);
+            void setActivation(float* a);
 
             float activationFunction(float x);
         };
@@ -61,16 +61,15 @@ public:
     // Every weight and bias is randomized
     void random();
       
-    // Returns last layer output
-    std::vector<float> feedForward();
+    // Returns last layer output after simulating the neuralNet
+    float* feedForward();
 
     // Adds layer to neuralNet
     void addLayer(int numberOfNeurons);
 
     // Sets first layer to passed vector 
-    // Prints error if passed vector length isnt matching first layer size
-    // Resizes passed vector to length of first layer with Defualt of 1
-    void setInput(std::vector<float> input);
+    // Prints error and returns if passed array length is'nt matching first layer size
+    void setInput(float* input);
 
 
     // Sets first layer to random values between -1 and 1
@@ -109,10 +108,10 @@ public:
     void printActivations();
 
     // Mean absolute error
-    float MAELossFunction(std::vector<float> output, std::vector<float> target);
+    float MAELossFunction(float* output, std::vector<float> target);
 
     // Mean squard error
-    float MSELossFunction(std::vector<float> output, std::vector<float> target);
+    float MSELossFunction(float* output, std::vector<float> target);
 
 
     // Returns sum of weights and bias
