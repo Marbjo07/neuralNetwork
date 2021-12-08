@@ -10,13 +10,15 @@
 #ifndef FEEDFORWARD_CPP
 #define FEEDFORWARD_CPP
 
-#define BLOCK_SIZE 16
-#define GRID_SIZE 1
+#define BLOCK_SIZE 64
+#define GRID_SIZE 2
 
 __global__ void matrixMul(const float* activations, const float* weights, const float* bias, float* output, const int* shape, const int layerIndex) {
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    /*int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int id = row * BLOCK_SIZE + col;
+    */
+    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
     while (id < shape[layerIndex]) {
         float tmp = 0;
@@ -24,9 +26,8 @@ __global__ void matrixMul(const float* activations, const float* weights, const 
             tmp += activations[i] * weights[shape[layerIndex - 1] * id + i];
         }
         output[id] = ACTIVATION_FUNCTION_GPU(tmp) + bias[id];
-        id += BLOCK_SIZE * BLOCK_SIZE;
+        id += gridDim.x * gridDim.y * blockDim.x * blockDim.y;
     }
-    __syncthreads();
 }
 
 
@@ -52,13 +53,11 @@ std::vector<float> NeuralNet::feedForward() {
         cudaMemcpyAsync(d_Bias, m_layers[layerNum].m_bias.data(), m_layers[layerNum].m_numberNeurons * sizeof(int), cudaMemcpyHostToDevice);
 
 
-
         matrixMul << <DimBlock, DimGrid >> > (d_Activations, d_Weights, d_Bias, d_Results, d_Shape, layerNum);
 
-        cudaMemcpy(&m_layers[layerNum].m_activation[0], d_Results, m_layers[layerNum].m_numberNeurons * sizeof(float), cudaMemcpyDeviceToHost);
-
-
         cudaDeviceSynchronize();
+
+        cudaMemcpy(&m_layers[layerNum].m_activation[0], d_Results, m_layers[layerNum].m_numberNeurons * sizeof(float), cudaMemcpyDeviceToHost);
 
 
         cudaFree(d_Activations);

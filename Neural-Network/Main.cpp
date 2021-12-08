@@ -11,7 +11,6 @@
 
 
 #include "../Neural-Network/NeuralNetwork.hpp"
-#include "../Neural-Network/Tests.h"
 
 class Image {
 private:
@@ -83,7 +82,7 @@ int main() {
 
 	Test::run(true, false);
 	Test::FeedForwardBenchmark();
-	Test::InitBenchmark();
+	//Test::InitBenchmark();
 	return 0;
 
 	std::cout << "Hello World\n";

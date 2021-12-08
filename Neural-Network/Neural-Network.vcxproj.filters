@@ -30,6 +30,15 @@
     <ClCompile Include="ShowCase.cpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClCompile>
+    <ClCompile Include="Random.cpp">
+      <Filter>Source Files\Implemetation</Filter>
+    </ClCompile>
+    <ClCompile Include="Tests.cpp">
+      <Filter>Source Files\Implemetation</Filter>
+    </ClCompile>
+    <ClCompile Include="NaturalSelection.cpp">
+      <Filter>Source Files\Implemetation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NeuralNetwork.hpp">
@@ -41,18 +50,18 @@
     <ClInclude Include="stb_image_write.h">
       <Filter>Source Files\FaceGenerationWithGAN</Filter>
     </ClInclude>
-    <ClInclude Include="Tests.h">
+    <ClInclude Include="Macros.hpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClInclude>
-    <ClInclude Include="Macros.h">
+    <ClInclude Include="Random.hpp">
+      <Filter>Source Files\Implemetation</Filter>
+    </ClInclude>
+    <ClInclude Include="Tests.hpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="FeedForward.cu">
-      <Filter>Source Files\Implemetation</Filter>
-    </CudaCompile>
-    <CudaCompile Include="NaturalSelection.cpp">
       <Filter>Source Files\Implemetation</Filter>
     </CudaCompile>
   </ItemGroup>

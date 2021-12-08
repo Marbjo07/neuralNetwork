@@ -31,24 +31,7 @@ float NeuralNet::MSELossFunction(std::vector<float> output, std::vector<float> t
     }
     return e;
 }
-static unsigned long x = 123456789;
-static unsigned long y = 362436069;
-static unsigned long z = 521288629;
-float randomNumberGenerator()
-{
-    unsigned long t;
-    x ^= x << 16;
-    x ^= x >> 5;
-    x ^= x << 1;
 
-    t = x;
-    x = y;
-    y = z;
-    z = t ^ x ^ y;
-
-    // does this to get a random float between -1 and 1
-    return (float)z * 4.656612873e-10F - 1;
-}
 
 
 
@@ -64,27 +47,27 @@ void mergeWithRandomModel(NeuralNet* model, float mutationStrength) {
         {
             for (; weightNum < model->m_layers[layerNum].m_weights.size() - 8; weightNum += 8) {
 
-                model->m_layers[layerNum].m_weights[weightNum + 0] += randomNumberGenerator() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 1] += randomNumberGenerator() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 2] += randomNumberGenerator() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 3] += randomNumberGenerator() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 4] += randomNumberGenerator() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 5] += randomNumberGenerator() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 6] += randomNumberGenerator() * mutationStrength;
-                model->m_layers[layerNum].m_weights[weightNum + 7] += randomNumberGenerator() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 0] += Random::Default() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 1] += Random::Default() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 2] += Random::Default() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 3] += Random::Default() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 4] += Random::Default() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 5] += Random::Default() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 6] += Random::Default() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum + 7] += Random::Default() * mutationStrength;
             }
 
         }
         else {
             for (; weightNum < model->m_layers[layerNum].m_weights.size(); weightNum++) {
 
-                model->m_layers[layerNum].m_weights[weightNum] += randomNumberGenerator() * mutationStrength;
+                model->m_layers[layerNum].m_weights[weightNum] += Random::Default() * mutationStrength;
 
             }
         }
 
         for (uint32_t neuronNum = 0; neuronNum < model->m_layers[layerNum].m_numberNeurons; neuronNum++) {
-            model->m_layers[layerNum].m_bias[neuronNum] += randomNumberGenerator() * mutationStrength;
+            model->m_layers[layerNum].m_bias[neuronNum] += Random::Default() * mutationStrength;
         }
     }
 

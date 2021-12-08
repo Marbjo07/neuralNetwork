@@ -10,8 +10,7 @@
 // Layer class:
 //
 
-#define RANGE 0.05f
-NeuralNet::Layer::ANN::ANN(std::mt19937* gen, int numberOfNeurons, int numberOfNeuronsPrevLayer, const float defualtWeight) {
+NeuralNet::Layer::ANN::ANN(int numberOfNeurons, int numberOfNeuronsPrevLayer, const float defualtWeight) {
     m_numberNeurons = numberOfNeurons;
     m_activation.resize(numberOfNeurons, 0);
     m_bias.resize(numberOfNeurons, 1);
@@ -21,11 +20,9 @@ NeuralNet::Layer::ANN::ANN(std::mt19937* gen, int numberOfNeurons, int numberOfN
     }
     else {
         // Random numbers between -1 and 1
-                                             // 2.0f / float(gen.max())
-        m_weights.resize(numberOfNeuronsPrevLayer * numberOfNeurons, 2.0f / float(gen->max()));
+        m_weights.resize(numberOfNeuronsPrevLayer * numberOfNeurons);
         for (auto i = 0; i < m_weights.size(); i++) {
-            m_weights[i] *= float((*gen)()) * RANGE;
-            m_weights[i] -= RANGE;
+            m_weights[i] = Random::Default();
         }
     }
 }
@@ -88,22 +85,28 @@ void NeuralNet::setRandomInput() {
 
 void NeuralNet::init(std::string name, const float defualtWeight) {
 
-    std::mt19937 gen(static_cast<unsigned int>( std::chrono::system_clock::now().time_since_epoch().count()));
-
     m_name = name;
 
     // clear layers if init is already called
-    m_layers.clear();
+    if (m_totalNumberOfNeurons >= m_shape[0]) {
+        for (auto i = 0; i < m_shape.size(); i++) {
+            if (m_shape[i] != m_layers[i].m_numberNeurons) {
+                m_layers.clear();
+                break;
+            }
+        }
+        random();
+        return;
+    }
 
     m_layers.reserve(m_shape.size());
 
     // Adds placeholder neurons
-    m_layers.emplace_back(Layer::ANN(&gen, m_shape[0]));
-    
+    m_layers.emplace_back(Layer::ANN(m_shape[0]));
     m_totalNumberOfNeurons = m_shape[0];
 
     for (int i = 1; i < m_shape.size() ; i++) {
-        m_layers.emplace_back(Layer::ANN(&gen, m_shape[i], m_shape[i-1], defualtWeight));
+        m_layers.emplace_back(Layer::ANN(m_shape[i], m_shape[i-1], defualtWeight));
         m_totalNumberOfNeurons += m_shape[i];
     }
 
@@ -273,30 +276,27 @@ void NeuralNet::printActivations() {
 
 }
 
-/*void NeuralNet::random() {
-    auto t1 = std::chrono::high_resolution_clock::now();
-
+void NeuralNet::random() {
     std::mt19937 gen((uint32_t)time(NULL));
     
     for (uint32_t layerNum = 0; layerNum < m_numberLayers; layerNum++) {
 
+
+        for (uint32_t weightNum = 0; weightNum < m_layers[layerNum].m_weights.size(); weightNum++) {
+
+            m_layers[layerNum].m_weights[weightNum] = Random::Default();
+        }
+        
         for (uint32_t neuronNum = 0; neuronNum < m_layers[layerNum].m_numberNeurons; neuronNum++) {
 
-            for (uint32_t weightNum = 0; weightNum < m_layers[layerNum].m_neurons[neuronNum].m_weights.size(); weightNum++) {
 
-                m_layers[layerNum].m_neurons[neuronNum].m_weights[weightNum] = static_cast<float>(gen()) / gen.max();
-            }
-
-            m_layers[layerNum].m_neurons[neuronNum].m_bias = static_cast<float>(gen()) / gen.max();
-
+            m_layers[layerNum].m_bias[neuronNum] = Random::Default();
 
         }
 
     }
-    std::cout << "Duration in miliseconds: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1).count() << std::endl;
-
 }
-*/
+
 
 float NeuralNet::sumOfWeightsAndBias() {
     float sum{};

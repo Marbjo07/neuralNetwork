@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Macros.h"
 
 #include <iostream>
 #include <vector>
@@ -13,7 +12,6 @@
 #include <thread>
 #include <future>
 #include <stdlib.h>
-
 
 
 #ifndef NEURALNETWORK_HPP
@@ -35,8 +33,8 @@ public:
             std::vector<float> m_weights;
             std::vector<float> m_activation;
 
-            // Every weight is set to defualtWeight if not eqaul to NULL
-            ANN(std::mt19937* gen, int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
+            // Every weight is set to defualtWeight if its not eqaul to NULL
+            ANN(int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
 
             void writeWeights(std::vector<std::vector<float>>* weights);
 
@@ -71,7 +69,7 @@ public:
 
     // Sets first layer to passed vector 
     // Prints error if passed vector length isnt matching first layer size
-    // Resizes passed vector to length of first layer with defualt of 1
+    // Resizes passed vector to length of first layer with Defualt of 1
     void setInput(std::vector<float> input);
 
 
@@ -121,5 +119,10 @@ public:
     float sumOfWeightsAndBias();
 
 };
+
+#include "Macros.hpp"
+#include "Random.hpp"
+#include "Tests.hpp"
+
 
 #endif // !NEURALNETWORK_HPP

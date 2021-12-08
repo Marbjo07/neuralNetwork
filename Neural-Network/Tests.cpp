@@ -1,33 +1,31 @@
 #pragma once
 
-#include "NeuralNetwork.hpp"
-
-#ifndef TESTS_CPP
-#define TESTS_CPP
+#include "Tests.hpp"
+#include "Macros.hpp"
 
 namespace Test {
     namespace Private {
-        std::string passNotPass(int returnVal) {
+        std::string Test::Private::passNotPass(int returnVal) {
 
             if (returnVal == 0) { return "   x    |            |\n"; }
                                   return  "       |      x     |\n";
         }
 
         bool caEqual(float a, float b) {
-            return abs(a - b) < 0.0005;
+            return abs(a - b) < 0.5;
         }
 
         std::vector<float> matrixMul(NeuralNet* model) {
 
             float tmp = 0;
 
-            for (uint32_t L = 1; L < (*model).m_numberLayers; L++) {
+            for (size_t L = 1; L < (*model).m_numberLayers; L++) {
 
-                for (uint32_t k = 0; k < (*model).m_layers[L].m_numberNeurons; k++) {
+                for (size_t k = 0; k < (*model).m_layers[L].m_numberNeurons; k++) {
 
                     tmp = 0;
 
-                    for (uint32_t i = 0; i < (*model).m_layers[L-1].m_numberNeurons; i++) {
+                    for (size_t i = 0; i < (*model).m_layers[L-1].m_numberNeurons; i++) {
 
                         tmp += (*model).m_layers[L-1].m_activation[i] * (*model).m_layers[L].m_weights[k * (*model).m_layers[L - 1].m_numberNeurons + i];
                     }
@@ -43,7 +41,7 @@ namespace Test {
 
             NeuralNet testModel;
 
-            testModel.m_shape = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 };
+            testModel.m_shape = { 42, 523, 234, 32 };
 
 
             testModel.init("FeedForwardTest");
@@ -244,5 +242,3 @@ namespace Test {
 
 
 };
-
-#endif // !TESTS_CPP */
