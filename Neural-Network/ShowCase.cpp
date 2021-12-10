@@ -1,4 +1,4 @@
-#include "NeuralNetwork.hpp"
+#include "NeuralNetwork.cuh"
 
 void showCase() {
 
@@ -52,7 +52,7 @@ void showCase() {
 
             // Sets input
             std::vector<float> x = { i };
-            model.setInput(x.data());
+            model.setInput(x.data(), x.size());
 
 
             // 1. Mutates the original model.
@@ -77,7 +77,6 @@ void showCase() {
     // Just make a empty model and load from bin file
     // DO NOT call init after loading model because this will clear the loaded model.
     model.load(savePath);
-
 
     output = model.feedForward();
 

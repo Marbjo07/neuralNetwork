@@ -143,6 +143,7 @@
       <TargetMachinePlatform>32</TargetMachinePlatform>
       <FastMath>true</FastMath>
       <Optimization>O2</Optimization>
+      <RuntimeChecks>InheritFromHost</RuntimeChecks>
     </CudaCompile>
     <CudaLink>
       <Optimization>O3</Optimization>
@@ -209,6 +210,7 @@
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <FastMath>true</FastMath>
       <Optimization>O2</Optimization>
+      <RuntimeChecks>InheritFromHost</RuntimeChecks>
     </CudaCompile>
     <CudaLink>
       <Optimization>O3</Optimization>
@@ -220,20 +222,29 @@
       <FileType>Document</FileType>
     </CudaCompile>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Random.cpp" />
+    <CudaCompile Include="GpuHelperFunctions.cu" />
+    <CudaCompile Include="Random.cu">
+      <FileType>Document</FileType>
+    </CudaCompile>
     <ClCompile Include="ShowCase.cpp" />
     <ClCompile Include="NaturalSelection.cpp">
       <FileType>Document</FileType>
     </ClCompile>
-    <ClCompile Include="NeuralNetwork.cpp" />
+    <CudaCompile Include="NeuralNetwork.cu">
+      <FileType>Document</FileType>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GpuHelperFunctions.cuh" />
     <ClInclude Include="Macros.hpp" />
-    <ClInclude Include="NeuralNetwork.hpp" />
-    <ClInclude Include="Random.hpp" />
+    <ClInclude Include="NeuralNetwork.cuh" />
+    <CudaCompile Include="Random.cuh" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="Tests.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="BencmarkNumbers.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

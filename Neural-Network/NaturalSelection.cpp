@@ -1,9 +1,6 @@
 #pragma once
 
-#include "NeuralNetwork.hpp"
-
-#include <curand_kernel.h>
-#include <curand.h>
+#include "NeuralNetwork.cuh"
 
 #ifndef NATURALSELECTION_CPP
 #define NATURALSELECTION_CPP
@@ -46,7 +43,7 @@ void NeuralNet::naturalSelection(
     auto t1 = std::chrono::high_resolution_clock::now();
 
     if (checkerModel != NULL) {
-        checkerModel->setInput(feedForward());
+        checkerModel->setInput(feedForward(), m_layers[0].m_numberNeurons);
         lowestError = MSELossFunction(checkerModel->feedForward(), target);
 
     }
@@ -69,7 +66,7 @@ void NeuralNet::naturalSelection(
         float* output = tempModel.feedForward();
 
         if (checkerModel != NULL) {
-            checkerModel->setInput(output);
+            checkerModel->setInput(output, tempModel.m_layers.back().m_numberNeurons);
 
             tempError = MSELossFunction(checkerModel->feedForward(), target);
         }
@@ -85,7 +82,7 @@ void NeuralNet::naturalSelection(
 
             std::cout << "with ";
             if (checkerModel != NULL) {
-                printArray(checkerModel->m_layers.back().m_activation);
+                printArray(checkerModel->m_layers.back().d_activations);
             }
             else {
                 printArray(output);

@@ -10,7 +10,7 @@
 #include "stb_image_write.h"
 
 
-#include "../Neural-Network/NeuralNetwork.hpp"
+#include "../Neural-Network/NeuralNetwork.cuh"
 
 class Image {
 private:
@@ -79,12 +79,10 @@ Image loadVector(std::string path) {
 
 
 int main() {
-
 	Test::run(true, false);
 	Test::FeedForwardBenchmark();
 	Test::InitBenchmark();
 	return 0;
-
 	std::cout << "Hello World\n";
 
 
@@ -152,18 +150,20 @@ int main() {
 			std::cout << "Fakeface: " << fakeFace << std::endl;
 
 
-			Generator.setInput(sampelInput.data());
+			Generator.setInput(sampelInput.data(), sampelInput.size());
 
+			Discriminator.feedForward();
+			output = Discriminator.getOutput();
+			
 			if (fakeFace) {
-				Discriminator.setInput(Generator.feedForward());
+				Discriminator.setInput(output, Discriminator.m_layers.back().m_numberNeurons);
 
 			}
 			else {
-				Discriminator.setInput(loadVector(entry.path().generic_string()).data.data());
+				Discriminator.setInput(loadVector(entry.path().generic_string()).data.data(), loadVector(entry.path().generic_string()).data.size());
 			}
 
 
-			output = Discriminator.feedForward();
 
 			//for (auto x : output) std::cout << x << " | ";
 			//std::cout << std::endl;
@@ -208,7 +208,7 @@ int main() {
 
 			if (i % 25 == 0) {
 				
-				Generator.setInput(sampelInput.data());
+				Generator.setInput(sampelInput.data(), sampelInput.size());
 				output = Generator.feedForward();
 
 				generatorImage.data.clear();

@@ -15,46 +15,43 @@ namespace Test {
             return abs(a - b) < 0.5;
         }
 
-        float* matrixMul(NeuralNet* model) {
-
-            float tmp = 0;
-
-            for (size_t L = 1; L < (*model).m_numberLayers; L++) {
-
-                for (size_t k = 0; k < (*model).m_layers[L].m_numberNeurons; k++) {
-
-                    tmp = 0;
-
-                    for (size_t i = 0; i < (*model).m_layers[L-1].m_numberNeurons; i++) {
-
-                        tmp += (*model).m_layers[L-1].m_activation[i] * (*model).m_layers[L].m_weights[k * (*model).m_layers[L - 1].m_numberNeurons + i];
-                    }
-                    (*model).m_layers[L].m_activation[k] = ACTIVATION_FUNCTION_CPU(tmp) + (*model).m_layers[L].m_bias[k];
-
-                }
-            }
-
-            return (*model).m_layers.back().m_activation;
-        }
-
         int FeedForwardTest(bool debug) {
 
             NeuralNet testModel;
 
-            testModel.m_shape = { 7, 732, 43, 34 };
+            testModel.m_shape = { 7, 2, 42 };
 
 
-            testModel.init("FeedForwardTest");
+            testModel.init("FeedForwardTest", 1.31415);
 
-            testModel.setRandomInput();
+            float input[7] = { 1, 2, 3, 4, 5, 6, 7 };
+            testModel.setInput(input, 7);
 
-            std::vector<float> expectedResults(testModel.m_layers.back().m_numberNeurons);
-            memcpy(&expectedResults[0], matrixMul(&testModel), testModel.m_layers.back().m_numberNeurons * sizeof(float));
+            std::vector<float> expectedResults;
+            expectedResults.resize(42, 96.71145246);
+            /*1.31415 1.31415
+            1.31415 1.31415
+                1.31415 1.31415
+                1.31415 1.31415
+                1.31415 1.31415
+                1.31415 1.31415
+                1.31415 1.31415
+                1.31415 1.31415
+
+
+                1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415
+                1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415 1.31415
+
+
+
+
+
+
+                */
 
 
             float tmp = 0;
-            for (auto k = 0; k < 1; k++) {
-            
+            for (auto k = 0; k < 4; k++) {
                 testModel.feedForward();
                 
                 float output = 0;
@@ -63,7 +60,7 @@ namespace Test {
                     
                 for (uint32_t n = 0; n < testModel.m_layers.back().m_numberNeurons; n++) {
 
-                    output = testModel.m_layers.back().m_activation[n];
+                    output = testModel.getOutput()[n];
                     expectation = expectedResults[n];
 
                     tmp += abs(output - expectation);
@@ -120,8 +117,9 @@ namespace Test {
         for (uint32_t i = 0; i < numberTests; i++) {
             auto start = std::chrono::high_resolution_clock::now();
 
+            model.feedForward();
 
-            output = model.feedForward();
+            output = model.getOutput();
 
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
             total += duration;

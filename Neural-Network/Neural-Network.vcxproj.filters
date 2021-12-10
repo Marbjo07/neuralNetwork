@@ -21,16 +21,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NeuralNetwork.cpp">
-      <Filter>Source Files\Implemetation</Filter>
-    </ClCompile>
     <ClCompile Include="Main.cpp">
       <Filter>Source Files\FaceGenerationWithGAN</Filter>
     </ClCompile>
     <ClCompile Include="ShowCase.cpp">
-      <Filter>Source Files\Implemetation</Filter>
-    </ClCompile>
-    <ClCompile Include="Random.cpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClCompile>
     <ClCompile Include="Tests.cpp">
@@ -41,7 +35,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="NeuralNetwork.hpp">
+    <ClInclude Include="NeuralNetwork.cuh">
       <Filter>Source Files\Implemetation</Filter>
     </ClInclude>
     <ClInclude Include="stb_image.h">
@@ -53,10 +47,10 @@
     <ClInclude Include="Macros.hpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClInclude>
-    <ClInclude Include="Random.hpp">
+    <ClInclude Include="Tests.hpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClInclude>
-    <ClInclude Include="Tests.hpp">
+    <ClInclude Include="GpuHelperFunctions.cuh">
       <Filter>Source Files\Implemetation</Filter>
     </ClInclude>
   </ItemGroup>
@@ -64,5 +58,22 @@
     <CudaCompile Include="FeedForward.cu">
       <Filter>Source Files\Implemetation</Filter>
     </CudaCompile>
+    <CudaCompile Include="NeuralNetwork.cu">
+      <Filter>Source Files\Implemetation</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Random.cuh">
+      <Filter>Source Files\Implemetation</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Random.cu">
+      <Filter>Source Files\Implemetation</Filter>
+    </CudaCompile>
+    <CudaCompile Include="GpuHelperFunctions.cu">
+      <Filter>Source Files\Implemetation</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="BencmarkNumbers.txt">
+      <Filter>Source Files\Implemetation</Filter>
+    </Text>
   </ItemGroup>
 </Project>

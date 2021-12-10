@@ -13,9 +13,17 @@
 #include <future>
 #include <stdlib.h>
 
+#include "E:\CUDA\Cuda Development\include\cuda.h"
+#include "E:\CUDA\Cuda Development\include\curand.h"
+#include "E:\CUDA\Cuda Development\include\cublas_v2.h"
+#include "E:\CUDA\Cuda Development\include\cuda_runtime.h"
+#include "E:\CUDA\Cuda Development\include\device_launch_parameters.h"
 
 #ifndef NEURALNETWORK_HPP
 #define NEURALNETWORK_HPP
+
+#define GRID_SIZE_NEURALNETWORK 2
+#define BLOCK_SIZE_NEURALNETWORK 64
 
 class NeuralNet {
 
@@ -29,16 +37,15 @@ public:
 
             uint32_t m_numberNeurons = 0;
 
-            float* m_bias;
-            float* m_weights;
-            float* m_activation;
+            float d_bias = 0;
+            float* d_weights;
+            float* d_activations;
 
             // Every weight is set to defualtWeight if its not eqaul to NULL
             ANN(int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
 
-            void writeWeights(std::vector<std::vector<float>>* weights);
-
             void setActivation(float* a);
+            
 
             float activationFunction(float x);
         };
@@ -46,8 +53,7 @@ public:
 
 
     std::vector<Layer::ANN> m_layers;
-    std::vector<int> m_shape;
-
+    std::vector<uint32_t> m_shape;
 
     uint32_t m_numberLayers;
     uint32_t m_totalNumberOfNeurons;
@@ -61,15 +67,20 @@ public:
     // Every weight and bias is randomized
     void random();
       
-    // Returns last layer output after simulating the neuralNet
+
+    // Simulates the neuralNet
     float* feedForward();
+
+
+    // Returns last layer activation
+    float* getOutput();
 
     // Adds layer to neuralNet
     void addLayer(int numberOfNeurons);
 
     // Sets first layer to passed vector 
     // Prints error and returns if passed array length is'nt matching first layer size
-    void setInput(float* input);
+    void setInput(float* input, const size_t size);
 
 
     // Sets first layer to random values between -1 and 1
@@ -120,8 +131,8 @@ public:
 };
 
 #include "Macros.hpp"
-#include "Random.hpp"
+#include "Random.cuh"
 #include "Tests.hpp"
-
+#include "GpuHelperFunctions.cuh"
 
 #endif // !NEURALNETWORK_HPP
