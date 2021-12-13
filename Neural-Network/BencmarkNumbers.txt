@@ -14,10 +14,7 @@ GPU not correct |  13804  13760  13829  14235   13666   13674  13884   13773   1
 GPU correct     | 115582 121807 134584 120241  120700  120283 127042  124897  134610 124214 | 1243960 |  124396  | output is actually correct 
 GPU v3		    |  39762  40986  42278  39139   37990   37074  39181   39773   36604  37715 |  390502 |  39050.2 | removed neuron class for less overhead
 GPU v4          |  11081  10493  10601  10247   10719   10186  10091    9973   10466  10615 |  104472 |  10447.2 | weights, bias and activations is always stored on the GPU 
-GPU v5			|   3877   3946   5106   4505    4544    4001   3978    5797    4615   4358 |   44727 |   4472.7 | better block size(16 and grid size(3)
-
-
-
+GPU v5			|   3877   3946   5106   4505    4544    4001   3978    5797    4615   4358 |   44727 |   4472.7 | better block size(16) and grid size(3)
 
 
 

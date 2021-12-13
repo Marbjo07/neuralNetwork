@@ -13,14 +13,14 @@ namespace Random {
     static uint_fast32_t y = 362436069;
     static uint_fast32_t z = 521288629;
 
-    static uint_fast32_t d_x = 123456789;
-    static uint_fast32_t d_y = 362436069;
-    static uint_fast32_t d_z = 521288630;
+    static uint_fast32_t offset = 362436069;
 
     // returns value between -1 and 1
     float Default();
 
-    __global__ void ArrayGpu(float* arrayToRandomize, const int size, uint_fast32_t d_x, uint_fast32_t d_y, uint_fast32_t d_z);
+    __global__ void ArrayGpu(float* arrayToRandomize, const int size, int offset);
+
+    __global__ void MutateArrayGpu(float* arrayToRandomize, const int size, int offset);
 
     // return value between -x and x 
     float Range(float x); 

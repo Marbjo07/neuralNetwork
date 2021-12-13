@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Tests.hpp"
-#include "Macros.hpp"
 
 namespace Test {
     namespace Private {
@@ -24,8 +23,8 @@ namespace Test {
 
             testModel.init("FeedForwardTest", 1.31415);
 
-            float input[7] = { 1, 2, 3, 4, 5, 6, 7 };
-            testModel.setInput(input, 7);
+            std::vector<float> input = { 1, 2, 3, 4, 5, 6, 7 };
+            testModel.setInput(input);
 
             std::vector<float> expectedResults;
             expectedResults.resize(42, 96.71145246);
@@ -103,8 +102,15 @@ namespace Test {
         NeuralNet model;
 
 
-        model.m_shape = { 3, 256, 1024, 4096, 4096, 1023, 256, 3 };
+        model.m_shape = { 1, 3, 1};
 
+        /*model.addLayer(200 * 200 * 3);
+        model.addLayer(256);
+        model.addLayer(64);
+        model.addLayer(64);
+        model.addLayer(16);
+        model.addLayer(1);
+        */
         model.init("AI");
 
         model.setRandomInput();
@@ -144,13 +150,13 @@ namespace Test {
 
         model.m_shape = { 3, 256, 1024, 4096, 4096, 1024, 256, 3 };
 
+
         float total = 0;
         uint32_t numberTests = 10;
         for (uint32_t i = 0; i < numberTests; i++) {
             auto start = std::chrono::high_resolution_clock::now();
 
             model.init("AI");
-
 
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
             total += duration;
@@ -162,7 +168,7 @@ namespace Test {
         return;
     }
 
-    void MergeFunctionBenchmark() {
+    void MutateFunctionBenchmark() {
 
 
         srand((uint32_t)time(NULL));
@@ -179,7 +185,7 @@ namespace Test {
         model.init("AI");
 
         for (float i = 0; i < 6; i++) {
-            model.naturalSelection({ 0 }, numberOfMutations, mutationStrength, 0);
+            model.mutate(mutationStrength);
         }
 
     }

@@ -6,8 +6,8 @@
 #ifndef FEEDFORWARD_CPP
 #define FEEDFORWARD_CPP
 
-#define GRID_SIZE_FEEDFORWARD 3
-#define BLOCK_SIZE_FEEDFORWARD 16
+#define GRID_SIZE_FEEDFORWARD 1
+#define BLOCK_SIZE_FEEDFORWARD 1
 
 #define MAX gridDim.x * gridDim.y * blockDim.x * blockDim.y
 
@@ -20,9 +20,10 @@ __global__ void matrixMul(const float* activations, const float* weights, const 
         for (int i = 0; i < prevSize; i++) {
             tmp += activations[i] * weights[prevSize * id + i];
         }
-        output[id] = ACTIVATION_FUNCTION_GPU(tmp) + bias;
+        output[id] = ACTIVATION_FUNCTION(tmp) + bias;
         id += gridDim.x * gridDim.y * blockDim.x * blockDim.y;
     }
+
 }
 
 
@@ -31,7 +32,13 @@ float* NeuralNet::feedForward() {
     dim3 DimGrid(GRID_SIZE_FEEDFORWARD, GRID_SIZE_FEEDFORWARD, 1);
     dim3 DimBlock(BLOCK_SIZE_FEEDFORWARD, BLOCK_SIZE_FEEDFORWARD, 1);
 
+    /*float sum = 0;
+    for (size_t i = 1; i < m_shape.size(); i++) {
+        sum += m_shape[i - 1] * m_shape[i];
+    }
+    printf("%.6f\n", sum / (GRID_SIZE_FEEDFORWARD * GRID_SIZE_FEEDFORWARD * BLOCK_SIZE_FEEDFORWARD * BLOCK_SIZE_FEEDFORWARD));*/
     for (size_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
+       
         matrixMul << <DimBlock, DimGrid >> > (
             m_layers[layerNum - 1].d_activations, 
             m_layers[layerNum].d_weights, 
@@ -39,7 +46,9 @@ float* NeuralNet::feedForward() {
             m_layers[layerNum].d_activations, 
             m_layers[layerNum].m_numberNeurons, 
             m_layers[layerNum - 1].m_numberNeurons);
-        
+
+        CHECK_FOR_KERNEL_ERRORS("NEURALNET::FEEDFORWARD");
+    
         cudaDeviceSynchronize();
     }
 

@@ -24,37 +24,67 @@ namespace Random {
         return (float)z / 2147483648 - 1;
     }
 
-    __global__ void ArrayGpu(float* arrayToRandomize, const int size, uint_fast32_t d_x, uint_fast32_t d_y, uint_fast32_t d_z) {
+    __global__ void ArrayGpu(float* arrayToRandomize, const int size, int offset) {
 
         int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
-        unsigned long t;
-        uint_fast32_t x = d_x + id * id;
-        uint_fast32_t y = d_y + id * id;
-        uint_fast32_t z = d_z + id * id;
 
+        uint32_t x = id + 1 + offset;
+
+        // numbers can look alike if this isnt done
+        for (auto i = 0; i < 10; i++) {
+            x ^= (x << 17);
+            x ^= (x >> 13);
+            x ^= (x << 5);
+        }
 
         while (id < size) {
-            
-            x ^= x << 16;
-            x ^= x >> 5;
-            x ^= x << 1;
+            x ^= (x << 17);
+            x ^= (x >> 13);
+            x ^= (x << 5);
 
-            t = x;
-            x = y;
-            y = z;
-            z = t ^ x ^ y;
-
-            arrayToRandomize[id] = (float)z / 2147483648 - 1;
+            arrayToRandomize[id] = (float)x / 4294967296 - 1;
 
             id += gridDim.x * gridDim.y * blockDim.x * blockDim.y;
         }
 
         __syncthreads();
 
-        if (id == 1) {
-            d_x = x;
-            d_y = y;
-            d_z = z;
+        if (id == 0) {
+            offset = x;
+        }
+
+        return;
+    }
+    __global__ void MutateArrayGpu(float* arrayToRandomize, const int size, int offset) {
+        int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+        
+
+        uint32_t x = id + 1 + offset;
+
+        // numbers can look alike if this isnt done
+        for (auto i = 0; i < 10; i++) {
+            x ^= (x << 17);
+            x ^= (x >> 13);
+            x ^= (x << 5);
+        }
+
+        while (id < size) {
+
+            x ^= (x << 17);
+            x ^= (x >> 13);
+            x ^= (x << 5);
+
+            if (std::abs(arrayToRandomize[id]) <= 0.0001) {
+                arrayToRandomize[id] += (float)x / 4294967296 - 1;
+            }
+            arrayToRandomize[id] *= (float)x / 4294967296 - 1;
+            id += gridDim.x * gridDim.y * blockDim.x * blockDim.y;
+        }
+
+        __syncthreads();        
+        
+        if (id == 0) {
+            offset = x;
         }
     }
 

@@ -16,35 +16,17 @@
     <Filter Include="Source Files\Implemetation">
       <UniqueIdentifier>{14a339e1-8db1-45e4-a6e0-f36d02d5ea3c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\FaceGenerationWithGAN">
-      <UniqueIdentifier>{3eb8b7c7-38a1-4259-a332-1c6c8718e7d2}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files\FaceGenerationWithGAN</Filter>
-    </ClCompile>
     <ClCompile Include="ShowCase.cpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClCompile>
     <ClCompile Include="Tests.cpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClCompile>
-    <ClCompile Include="NaturalSelection.cpp">
-      <Filter>Source Files\Implemetation</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NeuralNetwork.cuh">
-      <Filter>Source Files\Implemetation</Filter>
-    </ClInclude>
-    <ClInclude Include="stb_image.h">
-      <Filter>Source Files\FaceGenerationWithGAN</Filter>
-    </ClInclude>
-    <ClInclude Include="stb_image_write.h">
-      <Filter>Source Files\FaceGenerationWithGAN</Filter>
-    </ClInclude>
-    <ClInclude Include="Macros.hpp">
       <Filter>Source Files\Implemetation</Filter>
     </ClInclude>
     <ClInclude Include="Tests.hpp">

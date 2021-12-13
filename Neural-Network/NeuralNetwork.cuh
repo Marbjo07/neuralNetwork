@@ -13,17 +13,23 @@
 #include <future>
 #include <stdlib.h>
 
-#include "E:\CUDA\Cuda Development\include\cuda.h"
-#include "E:\CUDA\Cuda Development\include\curand.h"
-#include "E:\CUDA\Cuda Development\include\cublas_v2.h"
-#include "E:\CUDA\Cuda Development\include\cuda_runtime.h"
-#include "E:\CUDA\Cuda Development\include\device_launch_parameters.h"
+#include "cuda.h"
+#include "curand.h"
+#include "cublas_v2.h"
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
 
 #ifndef NEURALNETWORK_HPP
 #define NEURALNETWORK_HPP
 
-#define GRID_SIZE_NEURALNETWORK 2
-#define BLOCK_SIZE_NEURALNETWORK 64
+#define SIZEOF(x) sizeof(x) / sizeof(x[0])
+
+#define ACTIVATION_FUNCTION(x) tanh(x)
+
+#define GRID_SIZE_NEURALNETWORK 4
+#define BLOCK_SIZE_NEURALNETWORK 8
+
+#define CHECK_FOR_KERNEL_ERRORS(identifier) cudaError_t err = cudaGetLastError(); if (err != cudaSuccess) { std::cout << "Error in " << identifier << " "<< cudaGetErrorString(err) << std::endl; }
 
 class NeuralNet {
 
@@ -44,10 +50,10 @@ public:
             // Every weight is set to defualtWeight if its not eqaul to NULL
             ANN(int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
 
-            void setActivation(float* a);
-            
+            void setActivation(std::vector<float> a);
 
-            float activationFunction(float x);
+            float* getActivations();
+
         };
     };
 
@@ -67,10 +73,13 @@ public:
     // Every weight and bias is randomized
     void random();
       
+    void mutate(float mutationStrenght);
 
     // Simulates the neuralNet
     float* feedForward();
 
+    // Dont call init after loading from a path
+    void init(std::string name, const float defualtWeight = NULL);
 
     // Returns last layer activation
     float* getOutput();
@@ -80,25 +89,11 @@ public:
 
     // Sets first layer to passed vector 
     // Prints error and returns if passed array length is'nt matching first layer size
-    void setInput(float* input, const size_t size);
+    void setInput(std::vector<float> input);
 
 
     // Sets first layer to random values between -1 and 1
     void setRandomInput();
-
-    // Initializes all values
-    // Sets model name
-    // Every weight is set to defualtWeight if its passed
-    void init(std::string name, const float defualtWeight = NULL);
-
-    // 
-    void naturalSelection(
-        std::vector<float> target,
-        int numberOfTest,
-        float mutationStrength,
-        float quitThreshold,
-        NeuralNet* checkerModel = NULL
-    );
     
     // Saves model to binary file in location specified
     // Does not accept \ 
@@ -118,19 +113,25 @@ public:
     // Not recomended on large models
     void printActivations();
 
+    void printOutput();
+
     // Mean absolute error
     float MAELossFunction(float* output, std::vector<float> target);
 
     // Mean squard error
     float MSELossFunction(float* output, std::vector<float> target);
 
+    // Overhead for all the lossfunctions
+    float LossFunction(float* output, std::vector<float> target);
 
     // Returns sum of weights and bias
     float sumOfWeightsAndBias();
 
+    // Returns collective error of all the tests passed
+    float performTest(std::vector<std::vector<float>> testData, std::vector<std::vector<float>> expectedOutput);
+
 };
 
-#include "Macros.hpp"
 #include "Random.cuh"
 #include "Tests.hpp"
 #include "GpuHelperFunctions.cuh"
