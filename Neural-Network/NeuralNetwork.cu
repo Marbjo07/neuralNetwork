@@ -380,7 +380,7 @@ float NeuralNet::performTest(std::vector<std::vector<float>> testData, std::vect
 void NeuralNet::printOutput() {
 
     std::vector<float> output;
-    output.reserve(m_shape.back() * sizeof(float));
+    output.resize(m_shape.back());
 
     memcpy(&output[0], getOutput(), m_shape.back() * sizeof(float));
 
