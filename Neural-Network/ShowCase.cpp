@@ -1,13 +1,7 @@
 #include "NeuralNetwork.cuh"
 
-void main() {
 
-    
-    // Can be used for optimizing blocks and grids in feedforward for your network shape
-    Test::FeedForwardBenchmark();
-
-    // Can be used for optimizing blocks and grids in init for your network shape
-    Test::InitBenchmark();
+int main() {
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -33,6 +27,18 @@ void main() {
 
 
     model.m_shape = { 1, 2, 4, 2, 1};
+
+
+
+    // Can be used for optimizing blocks and grids in feedforward.cu
+    Test::FeedForwardBenchmark(model.m_shape);
+
+    // Can be used for optimizing blocks and grids in neuralNetwork.cuh
+    Test::InitBenchmark(model.m_shape);
+
+    // Can be used for optimizing blocks and grids in neuralNetwork.cuh
+    Test::MergeFunctionBenchmark(model.m_shape);
+
 
 
     // Makes all weights and bias
@@ -101,5 +107,5 @@ void main() {
 
     printf("Duration in milliseconds: %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1).count());
 
-    return;
+    return 1;
 }

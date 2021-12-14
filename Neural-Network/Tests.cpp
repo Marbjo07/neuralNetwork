@@ -94,7 +94,7 @@ namespace Test {
 
   
     //FeedForwardBenchmark
-    void FeedForwardBenchmark() {
+    void FeedForwardBenchmark(std::vector<uint32_t> shape) {
 #include <chrono>
 #include <vector>
         srand((uint32_t)time(NULL));
@@ -102,15 +102,8 @@ namespace Test {
         NeuralNet model;
 
 
-        model.m_shape = { 1, 3, 1};
+        model.m_shape = shape;
 
-        /*model.addLayer(200 * 200 * 3);
-        model.addLayer(256);
-        model.addLayer(64);
-        model.addLayer(64);
-        model.addLayer(16);
-        model.addLayer(1);
-        */
         model.init("AI");
 
         model.setRandomInput();
@@ -122,15 +115,13 @@ namespace Test {
         uint32_t numberTests = 10;
         for (uint32_t i = 0; i < numberTests; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-
-            model.feedForward();
-
-            output = model.getOutput();
+            
+            output = model.feedForward();
 
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
             total += duration;
 
-            std::cout << duration << " ";
+            std::cout << duration << "\t";
         }
         std::cout << "Total: " << total << " Average: " << total / numberTests << std::endl;
 
@@ -140,7 +131,7 @@ namespace Test {
 
 
 
-    void InitBenchmark() {
+    void InitBenchmark(std::vector<uint32_t> shape) {
 #include <chrono>
 #include <vector>
         srand((uint32_t)time(NULL));
@@ -148,7 +139,7 @@ namespace Test {
         NeuralNet model;
 
 
-        model.m_shape = { 3, 256, 1024, 4096, 4096, 1024, 256, 3 };
+        model.m_shape = shape;
 
 
         float total = 0;
@@ -161,14 +152,14 @@ namespace Test {
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
             total += duration;
 
-            std::cout << duration << " ";
+            std::cout << duration << "\t";
         }
         std::cout << "Total: " << total << " Average: " << total / numberTests << std::endl;
 
         return;
     }
 
-    void MutateFunctionBenchmark() {
+    void MergeFunctionBenchmark(std::vector<uint32_t> shape) {
 
 
         srand((uint32_t)time(NULL));
@@ -179,14 +170,25 @@ namespace Test {
         NeuralNet model;
 
 
-        model.m_shape = { 3, 256, 256, 256, 256, 256, 256, 3 };
+        model.m_shape = shape;
 
 
         model.init("AI");
 
-        for (float i = 0; i < 6; i++) {
+        float total = 0;
+        uint32_t numberTests = 10;
+        for (uint32_t i = 0; i < numberTests; i++) {
+            auto start = std::chrono::high_resolution_clock::now();
+
             model.mutate(mutationStrength);
+
+
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+            total += duration;
+
+            std::cout << duration << "\t";
         }
+        std::cout << "Total: " << total << " Average: " << total / numberTests << std::endl;
 
     }
 

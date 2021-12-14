@@ -43,7 +43,7 @@ public:
 
             uint32_t m_numberNeurons = 0;
 
-            float d_bias = 0;
+            float d_bias = 1;
             float* d_weights;
             float* d_activations;
 
@@ -113,6 +113,7 @@ public:
     // Not recomended on large models
     void printActivations();
 
+    // Prints output of model
     void printOutput();
 
     // Mean absolute error
@@ -127,7 +128,7 @@ public:
     // Returns sum of weights and bias
     float sumOfWeightsAndBias();
 
-    // Returns collective error of all the tests passed
+    // Returns collective error of all the tests given
     float performTest(std::vector<std::vector<float>> testData, std::vector<std::vector<float>> expectedOutput);
 
 };

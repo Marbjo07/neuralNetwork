@@ -7,6 +7,11 @@
 
 namespace Random {
 
+    static uint_fast32_t x = 123456789;
+    static uint_fast32_t y = 362436069;
+    static uint_fast32_t z = 521288629;
+
+
     // return value between -1 and 1
     float Default() {
 
@@ -30,7 +35,7 @@ namespace Random {
 
         uint32_t x = id + 1 + offset;
 
-        // numbers can look alike if this isnt done
+        // cycle a few times or else the output are close together
         for (auto i = 0; i < 10; i++) {
             x ^= (x << 17);
             x ^= (x >> 13);

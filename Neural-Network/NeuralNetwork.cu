@@ -255,7 +255,7 @@ void NeuralNet::printWeightsAndBias() {
 
 
     std::cout << "Bias: \n";
-    for (uint32_t layerNum = 0; layerNum < m_numberLayers; layerNum++) {
+    for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
         printf(" %.6f ", m_layers[layerNum].d_bias);
     }
 

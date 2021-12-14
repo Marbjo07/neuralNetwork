@@ -16,11 +16,11 @@ namespace Test {
     }
     void run(bool exitOnFail, bool debug);
 
-    void FeedForwardBenchmark();
+    void FeedForwardBenchmark(std::vector<uint32_t> shape);
 
-    void InitBenchmark();
+    void InitBenchmark(std::vector<uint32_t> shape);
     
-    void MergeFunctionBenchmark();
+    void MergeFunctionBenchmark(std::vector<uint32_t> shape);
 };
 
 #endif // !TESTS_HPP */

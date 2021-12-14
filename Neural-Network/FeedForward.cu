@@ -6,8 +6,8 @@
 #ifndef FEEDFORWARD_CPP
 #define FEEDFORWARD_CPP
 
-#define GRID_SIZE_FEEDFORWARD 1
-#define BLOCK_SIZE_FEEDFORWARD 1
+#define GRID_SIZE_FEEDFORWARD 4
+#define BLOCK_SIZE_FEEDFORWARD 8
 
 #define MAX gridDim.x * gridDim.y * blockDim.x * blockDim.y
 
