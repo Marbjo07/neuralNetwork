@@ -200,7 +200,7 @@
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <Optimization>Full</Optimization>
-      <FloatingPointModel>Fast</FloatingPointModel>
+      <FloatingPointModel>Precise</FloatingPointModel>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
@@ -216,12 +216,11 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <FastMath>true</FastMath>
-      <Optimization>Od</Optimization>
+      <FastMath>false</FastMath>
+      <Optimization>O3</Optimization>
       <RuntimeChecks>InheritFromHost</RuntimeChecks>
       <GPUDebugInfo>false</GPUDebugInfo>
       <CodeGeneration>%(CodeGeneration)</CodeGeneration>
-      <AdditionalOptions>-g %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
     <CudaLink>
       <Optimization>O3</Optimization>

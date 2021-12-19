@@ -164,7 +164,7 @@ void NeuralNet::save(std::string path) {
         // Save bias
         for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
          
-            saveFile.write((const char*)&m_layers[layerNum].d_bias, sizeof(float));
+            saveFile.write((const char*)&m_layers[layerNum].m_bias, sizeof(float));
 
         }
 
@@ -198,7 +198,6 @@ void NeuralNet::load(std::string path) {
 
         // Get number of layers
         loadFile.read((char*)&sizeOfShape, sizeof(sizeOfShape));
-        std::cout << "Sizeof shape: " << sizeOfShape << std::endl;
         m_shape.resize(sizeOfShape);
         
         // Get shape of model
@@ -225,7 +224,7 @@ void NeuralNet::load(std::string path) {
 
         // Load value of bias
         for (uint32_t layer = 1; layer < m_numberLayers; layer++) {
-            loadFile.read((char*)&m_layers[layer].d_bias, sizeof(float));
+            loadFile.read((char*)&m_layers[layer].m_bias, sizeof(float));
         }
 
         loadFile.close();
@@ -256,7 +255,7 @@ void NeuralNet::printWeightsAndBias() {
 
     std::cout << "Bias: \n";
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
-        printf(" %.6f ", m_layers[layerNum].d_bias);
+        printf(" %.6f ", m_layers[layerNum].m_bias);
     }
 
 
@@ -266,8 +265,8 @@ void NeuralNet::printWeightsAndBias() {
 
 void NeuralNet::printActivations() {
 
-    std::cout << "Activations: " << std::endl;
-    printf("n: %d", m_numberLayers);
+    printf("Activations: ");
+    
     for (uint32_t layerNum = 0; layerNum < m_numberLayers; layerNum++) {
         GpuHelperFunc::printArray << <1, 1 >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_numberNeurons);
         
@@ -291,7 +290,7 @@ void NeuralNet::random() {
         
         cudaDeviceSynchronize();
 
-        m_layers[layerNum].d_bias = Random::Default();
+        m_layers[layerNum].m_bias = Random::Default();
     }
 }
 
@@ -308,7 +307,7 @@ void NeuralNet::mutate(float mutationStrength) {
 
         cudaDeviceSynchronize();
 
-        m_layers[layerNum].d_bias *= Random::Default();
+        m_layers[layerNum].m_bias *= Random::Default();
     }
 }
 
@@ -322,7 +321,7 @@ float NeuralNet::sumOfWeightsAndBias() {
         
         CHECK_FOR_KERNEL_ERRORS("NeuralNet::sumOfWeightsAndBias()");
 
-        sum += m_layers[layerNum].d_bias;
+        sum += m_layers[layerNum].m_bias;
     }
     return sum;
 }
@@ -386,8 +385,68 @@ void NeuralNet::printOutput() {
 
 
     printf("Output: ");
-    for (auto i = 0; i < output.size(); i++) std::cout << output[i] << " | ";
+    for (auto i = 0; i < output.size(); i++) std::cout << output[i] << " ";
     printf("\n");
+}
+
+void NeuralNet::optimizeGridsAndBlocksFeedforward(uint32_t maxGrid, uint32_t maxBlock, uint32_t numberOfTest) {
+
+    uint32_t bestGrid = 1;
+    uint32_t bestBlock = 1;
+
+
+    auto start = std::chrono::high_resolution_clock::now();
+    feedForward(1, 1);
+    auto minDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+
+    for (uint32_t grid = 1; grid <= maxGrid; ++grid) {
+        for (uint32_t block = 2; block <= maxBlock; ++block) {
+
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto k = 0; k < numberOfTest; ++k) {
+                feedForward(grid, block);
+            }
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+
+            if (duration < minDuration) {
+                minDuration = duration;
+                bestBlock = block;
+                bestGrid = grid;
+            }
+
+        }
+    }
+
+    m_gridFeedforward = bestGrid;
+    m_blockFeedforward = bestBlock;
+
+    printf("Optimized Grid and Block for feedforward: (%d, %d)\n", bestGrid, bestBlock);
+
+
+
+    
+}
+
+void NeuralNet::printSize() {
+    uint64_t numberOfVaribles = 0;
+
+    // Activation
+    for (auto x : m_shape) {
+        numberOfVaribles += x;
+    }
+
+    // Bias
+    numberOfVaribles += m_shape.size();
+
+    // Weights
+    for (uint32_t i = 1; i < m_numberLayers; i++) {
+        numberOfVaribles += m_shape[i - 1] * m_shape[i];
+    }
+
+    std::cout << "Number of parameter in neuralNetwork: " << numberOfVaribles
+        << " size in bytes: " << numberOfVaribles * sizeof(float) << "\n"
+        << " size in MB: " << (float)numberOfVaribles * sizeof(float) / 1024 / 1024 << "\n"
+        << " size in GB: " << (float)numberOfVaribles * sizeof(float) / 1024 / 1024 / 1024 << "\n";
 }
 
 #endif // !NEURALNETWORK_CPP

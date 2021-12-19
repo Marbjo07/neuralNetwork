@@ -26,19 +26,11 @@ int main() {
     // \, / or - is a connection
 
 
-    model.m_shape = { 1, 2, 4, 2, 1};
+    model.m_shape = { 3, 1 , 3 };
+    
 
-
-
-    // Can be used for optimizing blocks and grids in feedforward.cu
-    Test::FeedForwardBenchmark(model.m_shape);
-
-    // Can be used for optimizing blocks and grids in neuralNetwork.cuh
-    Test::InitBenchmark(model.m_shape);
-
-    // Can be used for optimizing blocks and grids in neuralNetwork.cuh
-    Test::MergeFunctionBenchmark(model.m_shape);
-
+    // Check if feedforward is working correctly
+    Test::run(true, false);
 
 
     // Makes all weights and bias
@@ -47,7 +39,18 @@ int main() {
     // "AI" is the name of the model. The name is printed in warrnings
     model.init("AI");
 
+
+    // Check time for feedforward
+    Test::FeedForwardBenchmark(model.m_shape);
+
+    // Prints and uses the best Grids and Blocks value for feedforward
+    model.optimizeGridsAndBlocksFeedforward(5, 32, 10);
     
+    // Check time for new blocks and grid.
+    // To keep these changes change m_gridFeedforward, m_blockFeedforward to the printed values.
+    // The changes aren't big for small models but for bigger model the speed increase can be 
+    Test::FeedForwardBenchmark(model.m_shape);
+
     model.printWeightsAndBias();
     
 
@@ -67,7 +70,7 @@ int main() {
 
     float lowestError = model.performTest(inputs, correctOutput);
     float error = lowestError;
-    for (auto j = 0; j < (2 << 12); j++) {
+    for (auto j = 0; j < (2 << 9); j++) {
 
         tmpModel.random();
 
@@ -89,6 +92,9 @@ int main() {
     // DO NOT call init after loading model because this will clear the loaded model.
     model.save(savePath);
 
+    model.load(savePath);
+
+    //model.printWeightsAndBias();
 
     std::vector<float> input = { 1 };
 
@@ -98,12 +104,9 @@ int main() {
 
     model.printOutput();
 
+
     // Prints sum of weights and bias used in debuging.
     printf("Sum of weight and bias: %.6f\n", model.sumOfWeightsAndBias());
-
-    model.load(savePath);
-    
-    model.printWeightsAndBias();
 
     printf("Duration in milliseconds: %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1).count());
 

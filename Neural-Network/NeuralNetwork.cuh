@@ -24,7 +24,9 @@
 
 #define SIZEOF(x) sizeof(x) / sizeof(x[0])
 
-#define ACTIVATION_FUNCTION(x) tanh(x)
+#define ACTIVATION_FUNCTION_GPU(x) 1
+#define ACTIVATION_FUNCTION_CPU(x) 1
+
 
 #define GRID_SIZE_NEURALNETWORK 4
 #define BLOCK_SIZE_NEURALNETWORK 8
@@ -43,7 +45,7 @@ public:
 
             uint32_t m_numberNeurons = 0;
 
-            float d_bias = 1;
+            float m_bias = 1;
             float* d_weights;
             float* d_activations;
 
@@ -64,6 +66,8 @@ public:
     uint32_t m_numberLayers;
     uint32_t m_totalNumberOfNeurons;
 
+    uint32_t m_gridFeedforward = 4;
+    uint32_t m_blockFeedforward = 8;
 
     // Name of neuralNet
     // Is printed in warings;
@@ -76,7 +80,7 @@ public:
     void mutate(float mutationStrenght);
 
     // Simulates the neuralNet
-    float* feedForward();
+    float* feedForward(uint32_t gridSize = NULL, uint32_t blockSize = NULL);
 
     // Dont call init after loading from a path
     void init(std::string name, const float defualtWeight = NULL);
@@ -131,6 +135,9 @@ public:
     // Returns collective error of all the tests given
     float performTest(std::vector<std::vector<float>> testData, std::vector<std::vector<float>> expectedOutput);
 
+    void optimizeGridsAndBlocksFeedforward(uint32_t maxGrid, uint32_t maxBlock, uint32_t numberOfTest);
+
+    void printSize();
 };
 
 #include "Random.cuh"

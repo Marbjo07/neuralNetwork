@@ -1,9 +1,9 @@
 #pragma once
 
 #include <iostream>
-#include "E:\CUDA\Cuda Development\include\cuda.h"
-#include "E:\CUDA\Cuda Development\include\cuda_runtime.h"
-#include "E:\CUDA\Cuda Development\include\device_launch_parameters.h"
+#include "cuda.h"
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
 
 #ifndef RANDOM_HPP
 #define RANDOM_HPP

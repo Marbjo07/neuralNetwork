@@ -14,7 +14,10 @@ GPU not correct |  13804  13760  13829  14235   13666   13674  13884   13773   1
 GPU correct     | 115582 121807 134584 120241  120700  120283 127042  124897  134610 124214 | 1243960 |  124396  | output is actually correct 
 GPU v3		    |  39762  40986  42278  39139   37990   37074  39181   39773   36604  37715 |  390502 |  39050.2 | removed neuron class for less overhead
 GPU v4          |  11081  10493  10601  10247   10719   10186  10091    9973   10466  10615 |  104472 |  10447.2 | weights, bias and activations is always stored on the GPU 
-GPU v5			|   3877   3946   5106   4505    4544    4001   3978    5797    4615   4358 |   44727 |   4472.7 | better block size(16) and grid size(3)
+GPU v5			|   3877   3946   5106   4505    4544    4001   3978    5797    4615   4358 |   44727 |   4472.7 | better block and grid size (3, 16)
+GPU v6			|   2788   2782   2800   3029    3378    2795   2760    2776    3210   2796 |	29114 |   2911.4 | better parameters (4, 8)
+GPU v7			|    195    180    194    189     189     191    190     189     189    190 |    1896 |    189.6 | dividing array into sections instead of jumping so much. This allows for more threads without them being inefficent. Better parameters (3, 22) 
+GPU v8			|    195    192    158    179     161     178    189     177     177    260 |	 1876 |    187.6 | reading four varibles at once. This leads to the best parameters being (1, 1)
 
 
 
@@ -26,7 +29,7 @@ Init function | Data point in microseconds                                      
 v1            | 221301 252704 200037 200320 201713 198987 198042 198444 199069 202674 | 2.07329e+06 |  207329 |
 v2			  |  15587   9304   8703   9017   8714   8636   9523   9492   8652   9065 |       96693 |  9669.3 | weights, bias and activations is always stored on the GPU and if init is called twice and it has the same shape as prev had it just randomizes weights, bias and activations instead of deleting everything and reallocating.
 v3			  |  12919   4725   3237   2624   2661   2855   2998   2598   2576   2588 |		  39781 |  3978.1 | one bias per layer previous had one per neuron. Read that I previously had done it wrong
-
+v4			  |	  8430   1406   1595   1579   1585   1588   1359   1655   1804   1378 |       22379 |  2237.9 | Faster random function
 
 
 

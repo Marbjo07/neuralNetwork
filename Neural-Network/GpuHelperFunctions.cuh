@@ -9,4 +9,4 @@ namespace GpuHelperFunc {
 
 	__global__ void sumOfArray(float* arrayToSum, const uint32_t size, float sum);
 
-};
+};    

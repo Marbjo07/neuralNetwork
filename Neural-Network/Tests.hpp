@@ -20,7 +20,7 @@ namespace Test {
 
     void InitBenchmark(std::vector<uint32_t> shape);
     
-    void MergeFunctionBenchmark(std::vector<uint32_t> shape);
+    void MutateFunctionBenchmark(std::vector<uint32_t> shape);
 };
 
 #endif // !TESTS_HPP */
