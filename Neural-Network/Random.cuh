@@ -14,9 +14,9 @@ namespace Random {
     // returns value between -1 and 1
     float Default();
 
-    __global__ void ArrayGpu(float* arrayToRandomize, const int size, int offset);
+    __global__ void ArrayGpu(float* arrayToRandomize, const int size, int64_t offset);
 
-    __global__ void MutateArrayGpu(float* arrayToRandomize, const int size, int offset);
+    __global__ void MutateArrayGpu(float* arrayToRandomize, const int size, int64_t offset);
 
     // return value between -x and x 
     float Range(float x); 

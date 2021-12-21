@@ -57,9 +57,9 @@ namespace Test {
                 
                 //for (auto x : testModel.m_shape) std::cout << x << " ";
 
-                testModel.init("FeedForwardTest");
+                testModel.init("FeedForwardTest", std::rand() );
 
-                testModel.setRandomInput();
+                testModel.setRandomInput(std::rand());
 
                 //std::vector<float> expectedResults;
                 //expectedResults.resize(42, 96.71145246);
@@ -117,16 +117,16 @@ namespace Test {
 
         printf("[Feedforward Benchmark]: ");
 
-        srand((uint32_t)time(NULL));
+        srand((uint64_t)time(NULL));
 
         NeuralNet model;
 
 
         model.m_shape = shape;
 
-        model.init("AI");
+        model.init("AI", std::rand());
 
-        model.setRandomInput();
+        model.setRandomInput(1);
 
         float* output;
 
@@ -167,7 +167,7 @@ namespace Test {
         for (uint32_t i = 0; i < numberTests; i++) {
             auto start = std::chrono::high_resolution_clock::now();
 
-            model.init("AI");
+            model.init("AI", std::rand());
 
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
             total += duration;
@@ -194,7 +194,7 @@ namespace Test {
         model.m_shape = shape;
 
 
-        model.init("AI");
+        model.init("AI", std::rand());
 
         float total = 0;
         uint32_t numberTests = 10;

@@ -16,7 +16,7 @@ __global__ void matrixMul(const float* activations, const float* weights, const 
 
 
     // Distrubute the remaining activations to the last few threads
-    if (id == MAX) {
+    if (id == MAX - 1) {
         size += currentSize % MAX;
     }
 
@@ -72,6 +72,7 @@ float* NeuralNet::feedForward(uint32_t gridSize, uint32_t blockSize) {
         CHECK_FOR_KERNEL_ERRORS("NEURALNET::FEEDFORWARD");
     
         cudaDeviceSynchronize();
+        
     }
     return this->getOutput();
 }

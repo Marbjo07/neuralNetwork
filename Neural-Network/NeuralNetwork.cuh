@@ -24,14 +24,18 @@
 
 #define SIZEOF(x) sizeof(x) / sizeof(x[0])
 
-#define ACTIVATION_FUNCTION_GPU(x) 1
-#define ACTIVATION_FUNCTION_CPU(x) 1
+
+// have to be equal
+// use cuda functions
+#define ACTIVATION_FUNCTION_GPU(x) x
+// use cpu functions
+#define ACTIVATION_FUNCTION_CPU(x) x
 
 
 #define GRID_SIZE_NEURALNETWORK 4
 #define BLOCK_SIZE_NEURALNETWORK 8
 
-#define CHECK_FOR_KERNEL_ERRORS(identifier) cudaError_t err = cudaGetLastError(); if (err != cudaSuccess) { std::cout << "Error in " << identifier << " "<< cudaGetErrorString(err) << std::endl; }
+#define CHECK_FOR_KERNEL_ERRORS(identifier) cudaError_t err = cudaGetLastError(); if (err != cudaSuccess) { std::cout << "Error in " << identifier << " "<< cudaGetErrorString(err) << std::endl; exit(0) }
 
 class NeuralNet {
 
@@ -46,11 +50,11 @@ public:
             uint32_t m_numberNeurons = 0;
 
             float m_bias = 1;
-            float* d_weights;
-            float* d_activations;
+            float* d_weights = NULL;
+            float* d_activations = NULL;
 
             // Every weight is set to defualtWeight if its not eqaul to NULL
-            ANN(int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
+            ANN(uint64_t seed, int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
 
             void setActivation(std::vector<float> a);
 
@@ -75,7 +79,7 @@ public:
 
 
     // Every weight and bias is randomized
-    void random();
+    void random(uint64_t seed);
       
     void mutate(float mutationStrenght);
 
@@ -83,7 +87,7 @@ public:
     float* feedForward(uint32_t gridSize = NULL, uint32_t blockSize = NULL);
 
     // Dont call init after loading from a path
-    void init(std::string name, const float defualtWeight = NULL);
+    void init(std::string name, int64_t seed, const float defualtWeight = NULL);
 
     // Returns last layer activation
     float* getOutput();
@@ -97,7 +101,7 @@ public:
 
 
     // Sets first layer to random values between -1 and 1
-    void setRandomInput();
+    void setRandomInput(int64_t seed );
     
     // Saves model to binary file in location specified
     // Does not accept \ 
@@ -135,8 +139,8 @@ public:
     // Returns collective error of all the tests given
     float performTest(std::vector<std::vector<float>> testData, std::vector<std::vector<float>> expectedOutput);
 
-    void optimizeGridsAndBlocksFeedforward(uint32_t maxGrid, uint32_t maxBlock, uint32_t numberOfTest);
-
+    void optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBlock, uint32_t numberOfTest);
+    
     void printSize();
 };
 

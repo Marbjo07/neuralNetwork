@@ -11,7 +11,7 @@
 //
 
 
-NeuralNet::Layer::ANN::ANN(int numberOfNeurons, int numberOfNeuronsPrevLayer, const float defualtWeight) {
+NeuralNet::Layer::ANN::ANN(uint64_t seed, int numberOfNeurons, int numberOfNeuronsPrevLayer, const float defualtWeight) {
 
     m_numberNeurons = numberOfNeurons;
     cudaMalloc(&d_activations, sizeof(float) * numberOfNeurons);
@@ -31,7 +31,7 @@ NeuralNet::Layer::ANN::ANN(int numberOfNeurons, int numberOfNeuronsPrevLayer, co
     }
     else {
         // Random numbers between -1 and 1
-        Random::ArrayGpu << < DimBlock, DimGrid >> > (d_weights, numberOfNeurons * numberOfNeuronsPrevLayer, Random::offset + std::rand());
+        Random::ArrayGpu << < DimBlock, DimGrid >> > (d_weights, numberOfNeurons * numberOfNeuronsPrevLayer, Random::offset + std::rand() + seed);
         
         CHECK_FOR_KERNEL_ERRORS("NeuralNet::Layer::ANN::ANN()");
         
@@ -75,7 +75,7 @@ void NeuralNet::setInput(std::vector<float> input) {
     m_layers[0].setActivation(input);
 }
 
-void NeuralNet::setRandomInput() {
+void NeuralNet::setRandomInput(int64_t seed) {
     if (m_numberLayers <= 0){
         std::cout << "\033[1;31ERROR:\033[0m In setRandomInput() no valid layers. Number of layers: " << m_numberLayers << " Caused by : " << m_name << std::endl;
         return;
@@ -83,7 +83,7 @@ void NeuralNet::setRandomInput() {
     dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
     dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
     
-    Random::ArrayGpu << < DimBlock, DimGrid >> > (m_layers.front().d_activations, m_layers.front().m_numberNeurons, Random::offset + std::rand());
+    Random::ArrayGpu << < DimBlock, DimGrid >> > (m_layers.front().d_activations, m_layers.front().m_numberNeurons, Random::offset + std::rand() + seed);
 
     CHECK_FOR_KERNEL_ERRORS("NeuralNet::setRandomInput()");
 
@@ -92,30 +92,40 @@ void NeuralNet::setRandomInput() {
 
 }
 
-void NeuralNet::init(std::string name, const float defualtWeight) {
+void NeuralNet::init(std::string name, int64_t seed, const float defualtWeight) {
+
+    srand(seed);
 
     m_name = name;
 
-    if (m_totalNumberOfNeurons >= m_shape[0]) {
-        for (auto i = 0; i < m_shape.size(); i++) {
-            if (m_shape[i] != m_layers[i].m_numberNeurons) {
-                m_layers.clear();
-                break;
+
+    // Checks if existing model is equal to wanted model
+    if (m_numberLayers == m_shape.size()) {
+
+        bool equal = true;
+        
+        for (uint32_t i = 0; i < m_numberLayers; ++i) {
+            
+            if (m_layers[i].m_numberNeurons != m_shape[i]) {
+                equal = false;
             }
+        
         }
-        this->random();
-        return;
+        if (equal) {
+            this->random(seed);
+        }
     }
+
 
     m_layers.reserve(m_shape.size());
     m_numberLayers = (uint32_t)m_shape.size();
 
     // Adds placeholder neurons
-    m_layers.emplace_back(Layer::ANN(m_shape[0]));
+    m_layers.emplace_back(Layer::ANN(seed, m_shape[0]));
     m_totalNumberOfNeurons = m_shape[0];
 
     for (int i = 1; i < m_shape.size() ; i++) {
-        m_layers.emplace_back(Layer::ANN(m_shape[i], m_shape[i-1], defualtWeight));
+        m_layers.emplace_back(Layer::ANN(seed, m_shape[i], m_shape[i-1], defualtWeight));
         m_totalNumberOfNeurons += m_shape[i];
     }
 
@@ -204,7 +214,7 @@ void NeuralNet::load(std::string path) {
         loadFile.read(reinterpret_cast<char*>(&m_shape[0]), sizeOfShape * sizeof(int));
         
         // Initialize without random weights
-        init(modelName);
+        init(modelName, 0);
 
 
         // Load value of weights
@@ -277,14 +287,14 @@ void NeuralNet::printActivations() {
 
 }
 
-void NeuralNet::random() {
+void NeuralNet::random(uint64_t seed) {
     
     dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
     dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
     
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
 
-        Random::ArrayGpu << < DimBlock, DimGrid >> > (m_layers[layerNum].d_weights, m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons, Random::offset + rand());
+        Random::ArrayGpu << < DimBlock, DimGrid >> > (m_layers[layerNum].d_weights, m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons, Random::offset + std::rand() + seed);
         
         CHECK_FOR_KERNEL_ERRORS("NeuralNet::random()");
         
@@ -389,11 +399,13 @@ void NeuralNet::printOutput() {
     printf("\n");
 }
 
-void NeuralNet::optimizeGridsAndBlocksFeedforward(uint32_t maxGrid, uint32_t maxBlock, uint32_t numberOfTest) {
+void NeuralNet::optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBlock, uint32_t numberOfTest) {
 
     uint32_t bestGrid = 1;
     uint32_t bestBlock = 1;
 
+
+    setRandomInput(std::rand());
 
     auto start = std::chrono::high_resolution_clock::now();
     feedForward(1, 1);

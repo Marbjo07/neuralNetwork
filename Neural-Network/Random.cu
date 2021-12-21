@@ -29,14 +29,14 @@ namespace Random {
         return (float)z / 2147483648 - 1;
     }
 
-    __global__ void ArrayGpu(float* arrayToRandomize, const int size, int offset) {
+    __global__ void ArrayGpu(float* arrayToRandomize, const int size, int64_t offset) {
 
         int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
         uint32_t x = id + 1 + offset;
 
         // cycle a few times or else the output are close together
-        for (auto i = 0; i < 10; i++) {
+        for (auto i = 0; i < 5; i++) {
             x ^= (x << 17);
             x ^= (x >> 13);
             x ^= (x << 5);
@@ -60,7 +60,7 @@ namespace Random {
 
         return;
     }
-    __global__ void MutateArrayGpu(float* arrayToRandomize, const int size, int offset) {
+    __global__ void MutateArrayGpu(float* arrayToRandomize, const int size, int64_t offset) {
         int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
         
 

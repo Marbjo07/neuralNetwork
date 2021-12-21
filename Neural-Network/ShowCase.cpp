@@ -5,7 +5,6 @@ int main() {
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
-    srand((uint32_t)time(NULL));
 
     std::string savePath = "E:/desktop/neuralNet/a.bin";
 
@@ -20,13 +19,13 @@ int main() {
     //   \
     // o - o - o
     //   /
-    //  o 
+    // o 
 
     // o is a neuron
     // \, / or - is a connection
 
 
-    model.m_shape = { 3, 1 , 3 };
+    model.m_shape = { 1, 1 , 1 };
     
 
     // Check if feedforward is working correctly
@@ -37,18 +36,18 @@ int main() {
     // Init will clear model if allredy called!!
     // If defualtWeight is specified every weight is set to that value
     // "AI" is the name of the model. The name is printed in warrnings
-    model.init("AI");
+    model.init("AI", 1);
 
 
     // Check time for feedforward
     Test::FeedForwardBenchmark(model.m_shape);
 
     // Prints and uses the best Grids and Blocks value for feedforward
-    model.optimizeGridsAndBlocksFeedforward(5, 32, 10);
+    model.optimizeParametersFeedforward(5, 32, 10);
     
     // Check time for new blocks and grid.
-    // To keep these changes change m_gridFeedforward, m_blockFeedforward to the printed values.
-    // The changes aren't big for small models but for bigger model the speed increase can be 
+    // To keep these changes set m_gridFeedforward, m_blockFeedforward to the printed values.
+    // The changes aren't big for small models but for bigger model the speed increase can be vast.
     Test::FeedForwardBenchmark(model.m_shape);
 
     model.printWeightsAndBias();
@@ -58,7 +57,7 @@ int main() {
     model.feedForward();
 
 
-    model.getOutput();
+    model.printOutput();
 
 
     std::vector< std::vector< float > > inputs        = { {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10} };
@@ -72,7 +71,7 @@ int main() {
     float error = lowestError;
     for (auto j = 0; j < (2 << 9); j++) {
 
-        tmpModel.random();
+        tmpModel.random(std::rand());
 
         error = tmpModel.performTest(inputs, correctOutput);
         if (error < lowestError) {
@@ -98,12 +97,13 @@ int main() {
 
     std::vector<float> input = { 1 };
 
-    model.setInput(input);
+    model.setRandomInput(1);
 
     model.feedForward();
 
     model.printOutput();
 
+    model.printWeightsAndBias();
 
     // Prints sum of weights and bias used in debuging.
     printf("Sum of weight and bias: %.6f\n", model.sumOfWeightsAndBias());

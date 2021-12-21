@@ -199,7 +199,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FloatingPointModel>Precise</FloatingPointModel>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
