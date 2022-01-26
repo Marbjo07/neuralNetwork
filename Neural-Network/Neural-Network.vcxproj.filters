@@ -35,6 +35,9 @@
     <ClInclude Include="GpuHelperFunctions.cuh">
       <Filter>Source Files\Implemetation</Filter>
     </ClInclude>
+    <ClInclude Include="MacrosAndDefinitions.h">
+      <Filter>Source Files\Implemetation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="FeedForward.cu">

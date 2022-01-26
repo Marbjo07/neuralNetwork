@@ -4,7 +4,7 @@
 
 
 
-One data point is one feedforward call excludes the highest data point
+One data point is one call to feedforward()
 
 model shape = {3, 256, 1024, 4096, 4096, 1024, 256, 3}
 
@@ -18,8 +18,11 @@ GPU v5			|   3877   3946   5106   4505    4544    4001   3978    5797    4615   
 GPU v6			|   2788   2782   2800   3029    3378    2795   2760    2776    3210   2796 |	29114 |   2911.4 | better parameters (4, 8)
 GPU v7			|    195    180    194    189     189     191    190     189     189    190 |    1896 |    189.6 | dividing array into sections instead of jumping so much. This allows for more threads without them being inefficent. Better parameters (3, 22) 
 GPU v8			|    195    192    158    179     161     178    189     177     177    260 |	 1876 |    187.6 | reading four varibles at once. This leads to the best parameters being (1, 1)
-
-
+GPU v9			|  42817  42504  43098  42907   42708   43390   42856  42981   42657  43664 |  429582 |	 42958.2 | init function was wrong almost every weight was 0.
+GPU v10			|  22502  22419  22941  22732   22981   22866   22567  24217   23525  22941 |  229691 |  22969.1 | removed reading four varibles at once.
+GPU v11			|  15651  15360  15952  15755   15838   15730   16103  15563   15529  15615 |  157096 |  15709.6 | shared memory 
+GPU v12		    |  25190  25498  24177  25283   25195   25592   25597   24074  25390  25412 |  251408 |  25140.8 | almost every weight was 0
+GPU v13			|   1555   1534   1510   1514    1504    1640    1942    1536   1579   1594 |   15908 |   1590.8 | stopped being dumb and used cuBLAS.
 
 One data point is one call to Init()
 
@@ -28,12 +31,13 @@ model shape = {3, 256, 1024, 4096, 4096, 1024, 256, 3}
 Init function | Data point in microseconds                                            |  Total time | Average | Change
 v1            | 221301 252704 200037 200320 201713 198987 198042 198444 199069 202674 | 2.07329e+06 |  207329 |
 v2			  |  15587   9304   8703   9017   8714   8636   9523   9492   8652   9065 |       96693 |  9669.3 | weights, bias and activations is always stored on the GPU and if init is called twice and it has the same shape as prev had it just randomizes weights, bias and activations instead of deleting everything and reallocating.
-v3			  |  12919   4725   3237   2624   2661   2855   2998   2598   2576   2588 |		  39781 |  3978.1 | one bias per layer previous had one per neuron. Read that I previously had done it wrong
+v3			  |  12919   4725   3237   2624   2661   2855   2998   2598   2576   2588 |		  39781 |  3978.1 | one bias per layer previous had one per neuron. Read that I previously had done it wrong.
 v4			  |	  8430   1406   1595   1579   1585   1588   1359   1655   1804   1378 |       22379 |  2237.9 | Faster random function
+v5			  |  14305  13529  14069  13836  13883  14556  13731  14114  13295  13261 |		 138579 | 13857.9 | almost every weight was 0 started using curandGenerator_t(CURAND_RNG_PSEUDO_XORWOW)
 
 
 
-One data point is the average of 50 test with 0.05 as mutationStrength excludes the highest data point
+One data point is one call to Mutate()
 
 models shape = {3, 256, 256, 256, 256, 256, 256, 3}
 
@@ -48,3 +52,4 @@ v7              | 19032 17991 18020 17442 18056 |    90541   | 18108.2 | Changed
 v8              | 18040 16701 17250 17065 16690 |    85746   | 17149.2 | Made a varible at the start of merge function equal to randomNumber * constVal - mutationStrength. Where constVal = (2 / random max) * mutationStrength.
 v9              |   813   866   801   835   911 |     4226   |   845.2 | Custom random number generator
 v10				|   230   225   226   224   224 |     1129   |	 225.8 | Every thing is on the GPU
+v11				|   862   930   888   611   507 |	  3798   |   759.6 | Because almost every weight was 0 it was fæst.

@@ -1,41 +1,32 @@
 #pragma once
 
-
-#include <iostream>
-#include <vector>
-#include <random>
 #include <chrono>
 #include <fstream>
-#include <string>
+#include <future> 
+#include <iostream>
+#include <random>
 #include <sstream>
-#include <typeinfo>
-#include <thread>
-#include <future>
 #include <stdlib.h>
+#include <string>
+#include <thread>
+#include <typeinfo>
+#include <vector>
 
-#include "cuda.h"
-#include "curand.h"
-#include "cublas_v2.h"
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
+// cuda headers
+#include <cuda.h>
+#include <curand.h>
+#include <cublas_v2.h>
+#include <cuda_runtime.h>
+#include <curand_kernel.h>
+#include <device_launch_parameters.h>
+
+
+#include "MacrosAndDefinitions.h"
 
 #ifndef NEURALNETWORK_HPP
 #define NEURALNETWORK_HPP
 
-#define SIZEOF(x) sizeof(x) / sizeof(x[0])
 
-
-// have to be equal
-// use cuda functions
-#define ACTIVATION_FUNCTION_GPU(x) x
-// use cpu functions
-#define ACTIVATION_FUNCTION_CPU(x) x
-
-
-#define GRID_SIZE_NEURALNETWORK 4
-#define BLOCK_SIZE_NEURALNETWORK 8
-
-#define CHECK_FOR_KERNEL_ERRORS(identifier) cudaError_t err = cudaGetLastError(); if (err != cudaSuccess) { std::cout << "Error in " << identifier << " "<< cudaGetErrorString(err) << std::endl; exit(0) }
 
 class NeuralNet {
 
@@ -43,6 +34,7 @@ public:
     class Layer {
 
     public:
+
         class ANN {
 
         public:
@@ -63,15 +55,18 @@ public:
         };
     };
 
-
     std::vector<Layer::ANN> m_layers;
     std::vector<uint32_t> m_shape;
 
     uint32_t m_numberLayers;
     uint32_t m_totalNumberOfNeurons;
 
-    uint32_t m_gridFeedforward = 4;
-    uint32_t m_blockFeedforward = 8;
+    uint32_t m_gridFeedforward = 2;
+    uint32_t m_blockFeedforward = 3;
+
+    curandGenerator_t m_cudaRandGen;
+
+    cublasHandle_t m_feedForwardHandle;
 
     // Name of neuralNet
     // Is printed in warings;
@@ -124,6 +119,12 @@ public:
     // Prints output of model
     void printOutput();
 
+    // Prints memory size of model
+    void printSize();
+
+    // Prints shape model
+    void printShape();
+
     // Mean absolute error
     float MAELossFunction(float* output, std::vector<float> target);
 
@@ -141,7 +142,6 @@ public:
 
     void optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBlock, uint32_t numberOfTest);
     
-    void printSize();
 };
 
 #include "Random.cuh"

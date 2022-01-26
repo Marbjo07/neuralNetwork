@@ -179,7 +179,7 @@
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <FastMath>true</FastMath>
-      <Optimization>O3</Optimization>
+      <Optimization>Od</Optimization>
     </CudaCompile>
     <CudaLink>
       <GPUDebugInfo>true</GPUDebugInfo>
@@ -202,7 +202,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FloatingPointModel>Precise</FloatingPointModel>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -242,6 +242,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GpuHelperFunctions.cuh" />
+    <ClInclude Include="MacrosAndDefinitions.h" />
     <ClInclude Include="NeuralNetwork.cuh" />
     <CudaCompile Include="Random.cuh" />
     <ClInclude Include="Tests.hpp" />

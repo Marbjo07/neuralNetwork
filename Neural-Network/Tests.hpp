@@ -10,17 +10,25 @@ namespace Test {
         
         std::string passNotPass(int returnVal);
 
-        bool caEqual(float a, float b);
+        bool caEqual(float a, float b, float threshold);
+    
+        int MutateTest(bool debug);
 
         int FeedForwardTest(bool debug);
+
+        std::vector<float> cpuVersionOfFeedforward(NeuralNet model);
+
     }
-    void run(bool exitOnFail, bool debug);
+
+    void runTests(bool exitOnFail, bool debug);
+
+    void runBenchmarks();
 
     void FeedForwardBenchmark(std::vector<uint32_t> shape);
 
     void InitBenchmark(std::vector<uint32_t> shape);
     
-    void MutateFunctionBenchmark(std::vector<uint32_t> shape);
+    void MutateBenchmark(std::vector<uint32_t> shape);
 };
 
 #endif // !TESTS_HPP */

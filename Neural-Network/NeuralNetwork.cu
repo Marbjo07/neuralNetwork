@@ -10,34 +10,12 @@
 // Layer class:
 //
 
-
 NeuralNet::Layer::ANN::ANN(uint64_t seed, int numberOfNeurons, int numberOfNeuronsPrevLayer, const float defualtWeight) {
 
     m_numberNeurons = numberOfNeurons;
     cudaMalloc(&d_activations, sizeof(float) * numberOfNeurons);
-    
-
-    dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
-    dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
-    
 
     cudaMalloc(&d_weights, sizeof(float) * numberOfNeurons * numberOfNeuronsPrevLayer);
-    if (defualtWeight != NULL) {
-        GpuHelperFunc::setAllValuesInArrayToOneVal << <DimBlock, DimGrid >> > (d_weights, numberOfNeurons * numberOfNeuronsPrevLayer, defualtWeight);
-        
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::Layer::ANN::ANN()");
-        
-        cudaDeviceSynchronize();
-    }
-    else {
-        // Random numbers between -1 and 1
-        Random::ArrayGpu << < DimBlock, DimGrid >> > (d_weights, numberOfNeurons * numberOfNeuronsPrevLayer, Random::offset + std::rand() + seed);
-        
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::Layer::ANN::ANN()");
-        
-        cudaDeviceSynchronize();
-    }
-
 }
 
 
@@ -80,42 +58,47 @@ void NeuralNet::setRandomInput(int64_t seed) {
         std::cout << "\033[1;31ERROR:\033[0m In setRandomInput() no valid layers. Number of layers: " << m_numberLayers << " Caused by : " << m_name << std::endl;
         return;
     }
+    
     dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
     dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
-    
-    Random::ArrayGpu << < DimBlock, DimGrid >> > (m_layers.front().d_activations, m_layers.front().m_numberNeurons, Random::offset + std::rand() + seed);
+    curandGenerator_t gen;
+
+    curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_XORWOW);
+
+    curandSetPseudoRandomGeneratorSeed(gen, seed);
+
+    curandGenerateUniform(gen, m_layers.front().d_activations, m_shape[0]);
 
     CHECK_FOR_KERNEL_ERRORS("NeuralNet::setRandomInput()");
-
-    cudaDeviceSynchronize();
-
-
 }
 
 void NeuralNet::init(std::string name, int64_t seed, const float defualtWeight) {
+    
 
     srand(seed);
 
     m_name = name;
 
+    {
+        //// Checks if existing model is equal to wanted model
+        //if (m_numberLayers == m_shape.size()) {
 
-    // Checks if existing model is equal to wanted model
-    if (m_numberLayers == m_shape.size()) {
+        //    bool equal = true;
 
-        bool equal = true;
-        
-        for (uint32_t i = 0; i < m_numberLayers; ++i) {
-            
-            if (m_layers[i].m_numberNeurons != m_shape[i]) {
-                equal = false;
-            }
-        
-        }
-        if (equal) {
-            this->random(seed);
-        }
+        //    for (uint32_t i = 0; i < m_numberLayers; ++i) {
+
+        //        if (m_layers[i].m_numberNeurons != m_shape[i]) {
+        //            equal = false;
+        //        }
+        //    }
+        //    if (equal) {
+        //        this->random(seed);
+        //        return;
+        //    }
+        //}
     }
 
+    m_layers.clear();
 
     m_layers.reserve(m_shape.size());
     m_numberLayers = (uint32_t)m_shape.size();
@@ -124,12 +107,45 @@ void NeuralNet::init(std::string name, int64_t seed, const float defualtWeight) 
     m_layers.emplace_back(Layer::ANN(seed, m_shape[0]));
     m_totalNumberOfNeurons = m_shape[0];
 
-    for (int i = 1; i < m_shape.size() ; i++) {
-        m_layers.emplace_back(Layer::ANN(seed, m_shape[i], m_shape[i-1], defualtWeight));
+    for (int i = 1; i < m_shape.size(); i++) {
+        m_layers.emplace_back(Layer::ANN(seed, m_shape[i], m_shape[i - 1], defualtWeight));
         m_totalNumberOfNeurons += m_shape[i];
+
+
+        if (defualtWeight != NULL) {
+            dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
+            dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
+
+            GpuHelperFunc::setAllValuesInArrayToOneVal << <DimBlock, DimGrid >> > (m_layers[i].d_weights, m_shape[i] * m_shape[i - 1], defualtWeight);
+
+            CHECK_FOR_KERNEL_ERRORS("NeuralNet::Layer::ANN::ANN()");
+        }
+
     }
 
+    curandCreateGenerator(&m_cudaRandGen, CURAND_RNG_PSEUDO_XORWOW);
+
+    curandSetPseudoRandomGeneratorSeed(m_cudaRandGen, seed);
+    
+    if (defualtWeight == NULL) {
+        random(seed);
+    }
+
+    for (int i = 1; i < m_shape.size(); i++) {
+     
+        dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
+        dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
+
+        GpuHelperFunc::multiplyBy2AndSub1 << <DimBlock, DimGrid >> > (m_layers[i].d_weights, m_shape[i] * m_shape[i - 1]);
+
+        CHECK_FOR_KERNEL_ERRORS("NeuralNet::Layer::ANN::ANN()");
+
+    }
+
+    cublasCreate(&m_feedForwardHandle);
+
 }
+
 
 /**
   This function cant accept \
@@ -204,7 +220,7 @@ void NeuralNet::load(std::string path) {
         
         std::getline(loadFile, modelName, '\0');
 
-        int sizeOfShape;
+        int sizeOfShape = 0;
 
         // Get number of layers
         loadFile.read((char*)&sizeOfShape, sizeof(sizeOfShape));
@@ -250,24 +266,21 @@ void NeuralNet::load(std::string path) {
 
 void NeuralNet::printWeightsAndBias() {
 
-    std::cout << "Weights: \n";
+    /*std::cout << "Weights:\n";
 
-    // every colum is the weights for one neuron
+    // every row is the weights for one neuron
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
-        GpuHelperFunc::printArray<<<1, 1>>>(m_layers[layerNum].d_weights, m_layers[layerNum - 1].m_numberNeurons * m_layers[layerNum].m_numberNeurons);
+        GpuHelperFunc::printArray<<<1,1>>>(m_layers[layerNum].d_weights, m_shape[layerNum - 1] * m_shape[layerNum]);
         
         CHECK_FOR_KERNEL_ERRORS("NeuralNet::printWeightsAndBias()");
-        cudaDeviceSynchronize();
-    
+   
         printf("\n");
     }
-
-
-    std::cout << "Bias: \n";
+    */
+    std::cout << "Bias:\n";
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
         printf(" %.6f ", m_layers[layerNum].m_bias);
     }
-
 
     std::cout << "\n\n\n";
 
@@ -275,47 +288,39 @@ void NeuralNet::printWeightsAndBias() {
 
 void NeuralNet::printActivations() {
 
-    printf("Activations: ");
+    printf("Activations:\n");
     
     for (uint32_t layerNum = 0; layerNum < m_numberLayers; layerNum++) {
-        GpuHelperFunc::printArray << <1, 1 >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_numberNeurons);
-        
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::printActivations()");
-        
-        cudaDeviceSynchronize();
-    }
+        GpuHelperFunc::printArray<<<1,1>>>(m_layers[layerNum].d_activations, m_layers[layerNum].m_numberNeurons);
 
+        CHECK_FOR_KERNEL_ERRORS("NeuralNet::printActivations()");
+    }
+    printf("\n\n");
+        
 }
 
 void NeuralNet::random(uint64_t seed) {
     
     dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
     dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
-    
+
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
 
-        Random::ArrayGpu << < DimBlock, DimGrid >> > (m_layers[layerNum].d_weights, m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons, Random::offset + std::rand() + seed);
+        curandGenerateUniform(m_cudaRandGen, m_layers[layerNum].d_weights, m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons);
         
         CHECK_FOR_KERNEL_ERRORS("NeuralNet::random()");
         
-        cudaDeviceSynchronize();
-
-        m_layers[layerNum].m_bias = Random::Default();
+       m_layers[layerNum].m_bias = Random::Default();
     }
 }
 
 void NeuralNet::mutate(float mutationStrength) {
-    
-    dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
-    dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
 
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
 
-        Random::MutateArrayGpu << < DimBlock, DimGrid >> > (m_layers[layerNum].d_weights, m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons, Random::offset + rand());
+        Random::MutateArray(m_layers[layerNum].d_weights, &m_cudaRandGen, m_shape[layerNum] * m_shape[layerNum - 1]);
 
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::mutate()");
-
-        cudaDeviceSynchronize();
+        CHECK_FOR_KERNEL_ERRORS("NeuralNet::printActivations()");
 
         m_layers[layerNum].m_bias *= Random::Default();
     }
@@ -388,21 +393,19 @@ float NeuralNet::performTest(std::vector<std::vector<float>> testData, std::vect
 
 void NeuralNet::printOutput() {
 
-    std::vector<float> output;
-    output.resize(m_shape.back());
-
-    memcpy(&output[0], getOutput(), m_shape.back() * sizeof(float));
-
-
-    printf("Output: ");
-    for (auto i = 0; i < output.size(); i++) std::cout << output[i] << " ";
-    printf("\n");
+    printf("[Output '%s']: ", m_name.c_str());
+    GpuHelperFunc::printArray << <1, 1 >> > (m_layers[m_numberLayers - 1].d_activations, m_layers[m_numberLayers - 1].m_numberNeurons);
+    CHECK_FOR_KERNEL_ERRORS("NeuralNet::printOutput");
 }
+
 
 void NeuralNet::optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBlock, uint32_t numberOfTest) {
 
     uint32_t bestGrid = 1;
     uint32_t bestBlock = 1;
+
+    float progress = 0.0;
+    int barWidth = 70;
 
 
     setRandomInput(std::rand());
@@ -411,8 +414,24 @@ void NeuralNet::optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBloc
     feedForward(1, 1);
     auto minDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
 
+
     for (uint32_t grid = 1; grid <= maxGrid; ++grid) {
         for (uint32_t block = 2; block <= maxBlock; ++block) {
+            
+            // progress bar
+            progress += 1.0f / ((maxGrid) * (maxBlock - 1));
+            std::cout << "[Optimizing Feedforward Params]: [";
+            int pos = barWidth * progress;
+            for (int i = 0; i < barWidth; ++i) {
+                if (i < pos) std::cout << "=";
+                else if (i == pos) std::cout << ">";
+                else std::cout << " ";
+            }
+            std::cout << "] " << int(progress * 100.0) << " %\r";
+            std::cout.flush();
+
+
+            //printf("%d, %d\n", grid, block);
 
             auto start = std::chrono::high_resolution_clock::now();
             for (auto k = 0; k < numberOfTest; ++k) {
@@ -426,17 +445,29 @@ void NeuralNet::optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBloc
                 bestGrid = grid;
             }
 
+
         }
+
     }
+    std::cout.flush();
+
 
     m_gridFeedforward = bestGrid;
     m_blockFeedforward = bestBlock;
 
-    printf("Optimized Grid and Block for feedforward: (%d, %d)\n", bestGrid, bestBlock);
+    printf("\n[Optimized Feedforward Params]: (%d, %d)\n", bestGrid, bestBlock);
 
 
 
     
+}
+
+void NeuralNet::printShape() {
+
+    for (auto x : m_shape) {
+        std::cout << x << std::endl;
+    }
+
 }
 
 void NeuralNet::printSize() {
