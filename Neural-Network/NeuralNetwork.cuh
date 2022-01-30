@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math.h>
 #include <chrono>
 #include <fstream>
 #include <future> 
@@ -53,10 +54,22 @@ public:
             float* getActivations();
 
         };
+
+
+        //class CNN {
+
+        //    float* d_filter = NULL; 
+        //    float m_bias = 1;
+
+        //    CNN(uint64_t seed, int widthFilter, int heightFilter, std::vector<std::vector<float>> filter = std::vector::empty);
+
+        //};
     };
 
     std::vector<Layer::ANN> m_layers;
+
     std::vector<uint32_t> m_shape;
+    std::vector<std::string> m_activationFunctions;
 
     uint32_t m_numberLayers;
     uint32_t m_totalNumberOfNeurons;

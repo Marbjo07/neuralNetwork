@@ -202,7 +202,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FloatingPointModel>Precise</FloatingPointModel>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DebugInformationFormat>None</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -212,7 +212,6 @@
       <AdditionalDependencies>%(AdditionalDependencies);cublas.lib;cublasLt.lib;cuda.lib;cudadevrt.lib;cudart.lib;cudart_static.lib;cufft.lib;cufftw.lib;cufilt.lib;curand.lib;cusolver.lib;cusolverMg.lib;cusparse.lib;nppc.lib;nppial.lib;nppicc.lib;nppidei.lib;nppif.lib;nppig.lib;nppim.lib;nppist.lib;nppisu.lib;nppitc.lib;npps.lib;nvblas.lib;nvjpeg.lib;nvml.lib;nvptxcompiler_static.lib;nvrtc.lib;OpenCL.lib</AdditionalDependencies>
       <Profile>true</Profile>
       <NoEntryPoint>false</NoEntryPoint>
-      <AdditionalLibraryDirectories>$(CudaToolkitLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -220,7 +219,7 @@
       <Optimization>O3</Optimization>
       <RuntimeChecks>InheritFromHost</RuntimeChecks>
       <GPUDebugInfo>false</GPUDebugInfo>
-      <CodeGeneration>%(CodeGeneration)</CodeGeneration>
+      <CodeGeneration>compute_52,sm_52;%(CodeGeneration)</CodeGeneration>
     </CudaCompile>
     <CudaLink>
       <Optimization>O3</Optimization>

@@ -51,14 +51,41 @@ __global__ void matrixMul(const float* activations, const float* weights, const 
     }
 }*/
 
-__global__ void actiavtionFunction(float* activations, float bias,  const int size) {
+__global__ void actiavtionFunction(float* activations, float bias, const int functionNum, const int size) {
 
     int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
 
 #pragma unroll
     for (; id < size; id += blockDim.x * blockDim.y) {
-        activations[id] = ACTIVATION_FUNCTION_GPU(activations[id]) + bias;
+
+        float x = activations[id];
+
+        switch (functionNum) {
+
+        // sigmoid
+        case 0:
+            activations[id] = 1 / expf(x);
+            break;
+        // relu
+        case 1:
+            activations[id] = fmaxf(x, 0);
+            break;
+        // tanh
+        case 2:
+            activations[id] = tanh(x);
+            break;
+        // none
+        case 3:
+            break;
+        // custom
+        case 4:
+            activations[id] = 1 / (1 - x + x * x);
+            break;
+        }
+
+
+        activations[id] += bias;
     }
 }
 
@@ -81,7 +108,6 @@ float* NeuralNet::feedForward(uint32_t gridSize, uint32_t blockSize) {
 
 
     for (size_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
-        //       Signature: handel, operation, operation, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc
         GpuHelperFunc::cublasCompute(
             m_feedForwardHandle,
             m_layers[layerNum - 1].d_activations,
@@ -102,12 +128,22 @@ float* NeuralNet::feedForward(uint32_t gridSize, uint32_t blockSize) {
             m_layers[layerNum - 1].m_numberNeurons);
         */
 
+
         CHECK_FOR_KERNEL_ERRORS("NEURALNET::FEEDFORWARD");
 
-        actiavtionFunction << <DimBlock, DimGrid >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, m_shape[layerNum]);
+        // shifting layerNum by -1 because the first layer dont need to be "activated"
+        int functionNum;
+        if (m_activationFunctions[layerNum - 1] == "sigmoid") { functionNum = 0; }
+        else if (m_activationFunctions[layerNum - 1] == "relu") { functionNum = 1; }
+        else if (m_activationFunctions[layerNum - 1] == "tanh") { functionNum = 2; }
+        else if (m_activationFunctions[layerNum - 1] == "none") { functionNum = 3; }
+        else if (m_activationFunctions[layerNum - 1] == "custom") { functionNum = 4; }
+        else { std::runtime_error("activation function does not exist"); }
         
+        actiavtionFunction << <DimBlock, DimGrid >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, functionNum, m_shape[layerNum]);
+
         CHECK_FOR_KERNEL_ERRORS("NEURALNET::FEEDFORWARD");
-    
+        
     }
 
 

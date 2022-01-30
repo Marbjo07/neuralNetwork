@@ -5,10 +5,10 @@
 
 // have to be equal
 // use cuda kernel functions
-#define ACTIVATION_FUNCTION_GPU(x) x / (1 + abs(x))
+#define ACTIVATION_FUNCTION_GPU(x) x
 // use cpu functions
-#define ACTIVATION_FUNCTION_CPU(x) x / (1 + abs(x))
-// 1 / (1 - x + x*x)
+#define ACTIVATION_FUNCTION_CPU(x) x
+
 
 #define GRID_SIZE_NEURALNETWORK 4
 #define BLOCK_SIZE_NEURALNETWORK 8

@@ -14,15 +14,13 @@ int main() {
     NeuralNet model;
 
 
-    model.m_shape = { 1, 16, 32, 16, 1 };
-     
+    model.m_shape = { 1, 2, 3, 2, 1 };
     // Makes all weights and bias
     // Init will clear model if already called!
     // If defualtWeight is specified every weight is set to that value
     // "AI" is the name of the model. The name is printed in warrnings
     
     model.init("AI", clock());
-
 
     Test::runTests(true, false);
     

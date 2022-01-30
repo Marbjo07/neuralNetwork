@@ -18,7 +18,7 @@ namespace GpuHelperFunc {
 	void cublasCompute(cublasHandle_t handle, float* d_A, float* d_B, float* d_C, int uiWB, int uiHA, int uiWA) {
 		float alpha = 1;
 		float beta = 0;
-
+		//       Signature: handel, operation, operation, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc
 		cublasSgemm(
 			handle,
 			CUBLAS_OP_N,

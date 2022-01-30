@@ -144,6 +144,11 @@ void NeuralNet::init(std::string name, int64_t seed, const float defualtWeight) 
 
     cublasCreate(&m_feedForwardHandle);
 
+    if (m_activationFunctions.size() - 1 != m_shape.size()) {
+        m_activationFunctions.resize(m_shape.size() - 1, "none");
+    }
+    
+
 }
 
 
