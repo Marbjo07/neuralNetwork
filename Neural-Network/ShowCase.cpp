@@ -14,7 +14,9 @@ int main() {
     NeuralNet model;
 
 
-    model.m_shape = { 1, 2, 3, 2, 1 };
+    model.m_shape = { 1, 2, 3, 2, 2 };
+    model.m_activationFunctions = { "relu", "sigmoid", "sigmoid", "tanh" };
+    
     // Makes all weights and bias
     // Init will clear model if already called!
     // If defualtWeight is specified every weight is set to that value
@@ -22,11 +24,17 @@ int main() {
     
     model.init("AI", clock());
 
+    model.feedForward();
+
+    model.printOutput();
+
+    model.softMax();
+
+    model.printOutput();
+
     Test::runTests(true, false);
     
     Test::runBenchmarks();
-
-    return 1;
 
     std::vector< std::vector< float > > inputs        = { {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10} };
     std::vector< std::vector< float > > correctOutput = { {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0} };

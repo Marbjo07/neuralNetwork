@@ -54,7 +54,7 @@ namespace Random {
         dim3 DimGrid(2, 2, 1);
         dim3 DimBlock(32, 32, 1);
 
-        MatrixMul_1d << <DimBlock, DimGrid >> > (arrayToRandomize, randomNumbers, size);
+        MatrixMul_1d << <DimGrid, DimBlock >> > (arrayToRandomize, randomNumbers, size);
 
         CHECK_FOR_KERNEL_ERRORS("Random::MatrixMul_1d()");
     }

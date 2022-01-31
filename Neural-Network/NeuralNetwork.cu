@@ -116,7 +116,7 @@ void NeuralNet::init(std::string name, int64_t seed, const float defualtWeight) 
             dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
             dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
 
-            GpuHelperFunc::setAllValuesInArrayToOneVal << <DimBlock, DimGrid >> > (m_layers[i].d_weights, m_shape[i] * m_shape[i - 1], defualtWeight);
+            GpuHelperFunc::setAllValuesInArrayToOneVal << <DimGrid, DimBlock >> > (m_layers[i].d_weights, m_shape[i] * m_shape[i - 1], defualtWeight);
 
             CHECK_FOR_KERNEL_ERRORS("NeuralNet::Layer::ANN::ANN()");
         }
@@ -136,7 +136,7 @@ void NeuralNet::init(std::string name, int64_t seed, const float defualtWeight) 
         dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
         dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
 
-        GpuHelperFunc::multiplyBy2AndSub1 << <DimBlock, DimGrid >> > (m_layers[i].d_weights, m_shape[i] * m_shape[i - 1]);
+        GpuHelperFunc::multiplyBy2AndSub1 << <DimGrid, DimBlock>> > (m_layers[i].d_weights, m_shape[i] * m_shape[i - 1]);
 
         CHECK_FOR_KERNEL_ERRORS("NeuralNet::Layer::ANN::ANN()");
 

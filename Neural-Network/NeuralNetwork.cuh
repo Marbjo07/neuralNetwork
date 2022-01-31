@@ -155,6 +155,8 @@ public:
 
     void optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBlock, uint32_t numberOfTest);
     
+    // applies softmax on output layer
+    void softMax();
 };
 
 #include "Random.cuh"

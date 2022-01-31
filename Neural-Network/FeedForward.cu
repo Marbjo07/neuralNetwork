@@ -51,7 +51,7 @@ __global__ void matrixMul(const float* activations, const float* weights, const 
     }
 }*/
 
-__global__ void actiavtionFunction(float* activations, float bias, const int functionNum, const int size) {
+__global__ void activationFunction(float* activations, float bias, const int functionNum, const int size) {
 
     int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
@@ -87,6 +87,38 @@ __global__ void actiavtionFunction(float* activations, float bias, const int fun
 
         activations[id] += bias;
     }
+}
+
+__global__ void softMax_gpu(float* activations, const int size) { 
+
+    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+   
+    __shared__ float sum;
+
+
+    if (id == 0) {
+#pragma unroll
+        for (int i = 0; i < size; i++) {
+            sum += expf(activations[i]);
+        }
+    }
+
+    __syncthreads();
+
+    for (; id < size; id += blockDim.x * blockDim.y) {
+        activations[id] = expf(activations[id]) / sum;
+    }
+
+}
+
+void NeuralNet::softMax() {
+    
+    dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
+    dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
+    GpuHelperFunc::usePrintArrayFromCppFile(m_layers.back().d_activations, m_shape.back());
+    softMax_gpu << <DimBlock, DimGrid >> > (m_layers.back().d_activations, m_shape.back());
+    CHECK_FOR_KERNEL_ERRORS("NEURALNET::FEEDFORWARD");
+    GpuHelperFunc::usePrintArrayFromCppFile(m_layers.back().d_activations, m_shape.back());
 }
 
 float* NeuralNet::feedForward(uint32_t gridSize, uint32_t blockSize) {
@@ -139,13 +171,17 @@ float* NeuralNet::feedForward(uint32_t gridSize, uint32_t blockSize) {
         else if (m_activationFunctions[layerNum - 1] == "none") { functionNum = 3; }
         else if (m_activationFunctions[layerNum - 1] == "custom") { functionNum = 4; }
         else { std::runtime_error("activation function does not exist"); }
-        
-        actiavtionFunction << <DimBlock, DimGrid >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, functionNum, m_shape[layerNum]);
 
+
+
+        activationFunction << <DimGrid, DimBlock >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, functionNum, m_shape[layerNum]);
         CHECK_FOR_KERNEL_ERRORS("NEURALNET::FEEDFORWARD");
-        
+
+
+
     }
 
+ 
 
     return this->getOutput();
 }
