@@ -55,6 +55,9 @@
     <CudaCompile Include="GpuHelperFunctions.cu">
       <Filter>Source Files\Implemetation</Filter>
     </CudaCompile>
+    <CudaCompile Include="Backpropagation.cu">
+      <Filter>Source Files\Implemetation</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="BencmarkNumbers.txt">

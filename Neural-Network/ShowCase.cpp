@@ -11,12 +11,36 @@ int main() {
 
     std::string savePath = "E:/desktop/neuralNet/a.bin";
 
+    std::vector< std::vector< float > > dataset = {};
+    std::vector< std::vector< float > > labels= {};
+
+    int numberOfDatapoints = 10;
+
+    for (int i = 0; i < numberOfDatapoints; i++) {
+        dataset.push_back({ 
+            float(i) / numberOfDatapoints
+        });
+
+        labels.push_back({ 
+            float(i) / numberOfDatapoints
+        });
+    }
+
+    for (auto x : dataset) std::cout << x[0] << " ";
+    printf("\n");
+    for (auto x : labels) std::cout << x[0] << " ";
+    printf("\n");
+
+    float learning_rate = 0.1;
+
+
     NeuralNet model;
 
 
-    model.m_shape = { 1, 2, 3, 2, 2 };
-    model.m_activationFunctions = { "relu", "sigmoid", "sigmoid", "tanh" };
-    
+    model.m_shape = { 1, 100, 1 };
+    model.m_activationFunctions = { "relu", "relu"};
+    model.m_deviceNum = 0;
+
     // Makes all weights and bias
     // Init will clear model if already called!
     // If defualtWeight is specified every weight is set to that value
@@ -24,41 +48,38 @@ int main() {
     
     model.init("AI", clock());
 
-    model.feedForward();
 
-    model.printOutput();
+    printf("loss: %.6f\n", model.performTest(dataset, labels));
 
-    model.softMax();
+    model.printWeightsAndBias();
 
-    model.printOutput();
 
-    Test::runTests(true, false);
-    
-    Test::runBenchmarks();
+    for (int epoch = 0; epoch < 1000; epoch++) {
 
-    std::vector< std::vector< float > > inputs        = { {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10} };
-    std::vector< std::vector< float > > correctOutput = { {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0} };
-    
-
-    NeuralNet tmpModel;
-    tmpModel = model;
-
-    float lowestError = model.performTest(inputs, correctOutput);
-    float error = lowestError;
-    for (auto j = 0; j < (2 << 5); j++) {
-
-        tmpModel.random(std::rand());
-
-        error = tmpModel.performTest(inputs, correctOutput);
-        printf("error: %.6f\n", error);
-
-        if (error < lowestError) {
-            lowestError = error;
-            model = tmpModel;
+        if (epoch % 10 == 0) {
+            printf("loss: %.6f\n", model.performTest(dataset, labels));
         }
+
+#if 0
+        model.backpropagation(dataset, labels, NULL, 0, 0, true);
+        model.updateWeights(learning_rate);
+        model.clearDelta();
+#else
+        model.backpropagation(dataset, labels, learning_rate);
+
+#endif
 
     }
 
+    printf("loss: %.6f\n", model.performTest(dataset, labels));
+
+    for (int i = 0; i < dataset.size(); i++) {
+        model.setInput(labels[i]);
+
+        model.feedForward();
+
+        printf("Input: %.3f, Correct Output: %.3f, Output: %.3f, Dif: %.3f\n", dataset[i][0], labels[i][0], model.getOutput()[0], abs(labels[i][0] - model.getOutput()[0]));
+    }
 
     // Saving and Loading is not nesseary but its just shown here.
     
@@ -70,14 +91,10 @@ int main() {
 
     model.load(savePath);
 
-    //model.printWeightsAndBias();
-
-    model.setRandomInput(1);
-
-    model.feedForward();
-
+    model.printWeightsAndBias();
 
     model.printActivations();
+
     model.printOutput();
 
     // Prints sum of weights and bias used in debuging.

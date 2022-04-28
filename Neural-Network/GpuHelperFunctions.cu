@@ -15,7 +15,9 @@ namespace GpuHelperFunc {
 		return;
 	}
 
-	void cublasCompute(cublasHandle_t handle, float* d_A, float* d_B, float* d_C, int uiWB, int uiHA, int uiWA) {
+	void cublasCompute(cublasHandle_t handle, float* d_A, float* d_B, float* d_C, int uiWB, int uiHA, int uiWA, const int deviceNum) {
+		cudaSetDevice(deviceNum);
+		
 		float alpha = 1;
 		float beta = 0;
 		//       Signature: handel, operation, operation, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc
@@ -35,12 +37,12 @@ namespace GpuHelperFunc {
 			d_C,
 			uiWB
 		);
-			
+
 
 	}
 
 	__global__ void printArray(float* arrayToPrint, const uint32_t size) {
-		
+
 		int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
 		if (id == 0) {
@@ -52,9 +54,11 @@ namespace GpuHelperFunc {
 		}
 	}
 
-	void usePrintArrayFromCppFile(float* arrayToPrint, const uint32_t size) {
+	void usePrintArrayFromCppFile(float* arrayToPrint, const uint32_t size, const int deviceNum, cudaStream_t deviceStream) {
 
-		GpuHelperFunc::printArray << <1, 1 >> > (arrayToPrint, size);
+		cudaSetDevice(deviceNum);
+
+		GpuHelperFunc::printArray << <1, 1, 0, deviceStream >> > (arrayToPrint, size);
 		CHECK_FOR_KERNEL_ERRORS("GpuHelperFunc::usePrintArrayFromCppFile");
 	}
 
@@ -107,6 +111,73 @@ namespace GpuHelperFunc {
 		}
 
 
+
+	}
+
+	namespace forEach {
+
+		__global__ void add(float* a, const float* b, const float* c, const int size) {
+			int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+			for (; id < size; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+				a[id] = b[id] + c[id];
+			}
+		}
+		__global__ void sub(float* a, const float* b, float* c, const int size) {
+			int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+			for (; id < size; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+				a[id] = b[id] - c[id];
+			}
+		}
+		__global__ void mul(float* a, const float* b, float* c, const int size) {
+			int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+			for (; id < size; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+				a[id] = b[id] * c[id];
+			}
+		}
+		__global__ void div(float* a, const float* b, float* c, const int size) {
+			int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+			for (; id < size; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+				a[id] = b[id] / c[id];
+			}
+		}
+
+
+		namespace constVal {
+
+			__global__ void add(float* a, const float* b, const float constVal, const int size) {
+				int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+				for (; id < size; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+					a[id] = b[id] + constVal;
+				}
+			}
+			__global__ void sub(float* a, const float* b, const float constVal, const int size) {
+				int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+				for (; id < size; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+					a[id] = b[id] / constVal;
+				}
+			}
+			__global__ void mul(float* a, const float* b, const float constVal, const int size) {
+				int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+				for (; id < size; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+					a[id] = b[id] * constVal;
+				}
+
+			}
+			__global__ void div(float* a, const float* b, const float constVal, const int size) {
+				int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+				for (; id < size; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+					a[id] = b[id] + constVal;
+				}
+			}
+		}
 
 	}
 

@@ -45,25 +45,15 @@ public:
             float m_bias = 1;
             float* d_weights = NULL;
             float* d_activations = NULL;
-
+            float* d_delta = NULL;
             // Every weight is set to defualtWeight if its not eqaul to NULL
-            ANN(uint64_t seed, int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
+            ANN(const int deviceNum, int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
 
-            void setActivation(std::vector<float> a);
+            void setActivation(const int deviceNum, std::vector<float> a);
 
-            float* getActivations();
+            float* getActivations(const int deviceNum);
 
         };
-
-
-        //class CNN {
-
-        //    float* d_filter = NULL; 
-        //    float m_bias = 1;
-
-        //    CNN(uint64_t seed, int widthFilter, int heightFilter, std::vector<std::vector<float>> filter = std::vector::empty);
-
-        //};
     };
 
     std::vector<Layer::ANN> m_layers;
@@ -81,6 +71,12 @@ public:
 
     cublasHandle_t m_feedForwardHandle;
 
+    // handel running code on set gpu
+    cudaStream_t m_deviceStream;
+
+    // index of which gpu to run the model on
+    int m_deviceNum = 0;
+
     // Name of neuralNet
     // Is printed in warings;
     std::string m_name;
@@ -93,6 +89,16 @@ public:
 
     // Simulates the neuralNet
     float* feedForward(uint32_t gridSize = NULL, uint32_t blockSize = NULL);
+
+    void backpropagation(const std::vector<std::vector<float>> dataset, const std::vector<std::vector<float>> correctOutput,
+        const float updateWeightsAfterEveryBackPass = (NULL),
+        int batchSize = 0,
+        const bool randomBatching = 0,
+        const bool averageOutDeltas = false);
+
+    void updateWeights(float learning_rate);
+
+    void clearDelta();
 
     // Dont call init after loading from a path
     void init(std::string name, int64_t seed, const float defualtWeight = NULL);
@@ -125,9 +131,12 @@ public:
     void printWeightsAndBias();
 
 
-    // Print every activation
+    // Prints every activation
     // Not recomended on large models
     void printActivations();
+
+    // Prints every delta for every neuron 
+    void printDeltas();
 
     // Prints output of model
     void printOutput();
@@ -157,6 +166,11 @@ public:
     
     // applies softmax on output layer
     void softMax();
+
+
+    // returns the hash of activation function on that layer
+    int getActivationFuncNum(const int layerNum);
+
 };
 
 #include "Random.cuh"

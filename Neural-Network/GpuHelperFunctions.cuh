@@ -6,7 +6,7 @@ namespace GpuHelperFunc {
 
 	__global__ void printArray(float* arrayToPrint, const uint32_t size);
 
-	void usePrintArrayFromCppFile(float* arrayToPrint, const uint32_t size);
+	void usePrintArrayFromCppFile(float* arrayToPrint, const uint32_t size, const int deviceNum, cudaStream_t deviceStream);
 
 	__global__ void printArray_2d(float* arrayToPrint, const uint32_t xsize, const uint32_t ysize);
 
@@ -14,5 +14,24 @@ namespace GpuHelperFunc {
 
 	__global__ void multiplyBy2AndSub1(float* arrayToChange, const uint32_t size);
 
-	void cublasCompute(cublasHandle_t handle, float* d_A, float* d_B, float* d_C, int uiWB, int uiHA, int uiWA);
+	void cublasCompute(cublasHandle_t handle, float* d_A, float* d_B, float* d_C, int uiWB, int uiHA, int uiWA, const int deviceNum);
+
+	namespace forEach {
+
+		__global__ void add(float* a, const float* b, const float* c, const int size);
+		__global__ void sub(float* a, const float* b, const float* c, const int size);
+		__global__ void mul(float* a, const float* b, const float* c, const int size);
+		__global__ void div(float* a, const float* b, const float* c, const int size);
+
+
+		namespace constVal { 
+		
+			__global__ void add(float* a, const float* b, const float constVal, const int size);
+			__global__ void sub(float* a, const float* b, const float constVal, const int size);
+			__global__ void mul(float* a, const float* b, const float constVal, const int size);
+			__global__ void div(float* a, const float* b, const float constVal, const int size);
+		}
+
+	}
+
 };    

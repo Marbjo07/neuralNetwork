@@ -10,11 +10,29 @@
 #define ACTIVATION_FUNCTION_CPU(x) x
 
 
-#define GRID_SIZE_NEURALNETWORK 4
-#define BLOCK_SIZE_NEURALNETWORK 8
+#define GRID_SIZE_NEURALNETWORK 1
+#define BLOCK_SIZE_NEURALNETWORK 1
 
 
-#define CHECK_FOR_KERNEL_ERRORS(identifier) {cudaDeviceSynchronize(); cudaError_t err = cudaGetLastError();if (err != cudaSuccess) {std::cout << "\n" <<cudaGetErrorString(err) <<" by: " << identifier << "\nFILE: " << __FILE__ << " LINE: " << __LINE__ << std::endl;throw std::runtime_error(cudaGetErrorString(err));}}
+#define CHECK_FOR_KERNEL_ERRORS(identifier)                           \
+do {                                                                  \
+    /* Check synchronous errors, i.e. pre-launch */                   \
+    cudaError_t err = cudaGetLastError();                             \
+    if (cudaSuccess != err) {                                         \
+        fprintf (stderr, "Cuda error in file '%s' in line %i : %s.\n",\
+                 __FILE__, __LINE__, cudaGetErrorString(err) );       \
+        exit(EXIT_FAILURE);                                           \
+    }                                                                 \
+    /* Check asynchronous errors, i.e. kernel failed (ULF) */         \
+    err = cudaThreadSynchronize();                                    \
+    if (cudaSuccess != err) {                                         \
+        fprintf (stderr, "Cuda error in file '%s' in line %i : %s.\n",\
+                 __FILE__, __LINE__, cudaGetErrorString( err) );      \
+        exit(EXIT_FAILURE);                                           \
+    }                                                                 \
+} while (0)
+
+
 
 // used in Test::runTests()
 #define ONETEST(NAME, FUNCTION) {int output = Private::FUNCTION(debug); std::cout << NAME << Private::passNotPass(output); if (output != 0 && exitOnFail) { return; }}
