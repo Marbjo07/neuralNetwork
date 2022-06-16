@@ -24,11 +24,13 @@ namespace Test {
 
     void runBenchmarks();
 
-    void FeedForwardBenchmark(std::vector<uint32_t> shape);
+    void FeedForwardBenchmark(uint32_t grid = NULL, uint32_t block = NULL);
 
-    void InitBenchmark(std::vector<uint32_t> shape);
+    void BackpropagationBenchmark(uint32_t grid = NULL, uint32_t block = NULL);
+
+    void InitBenchmark();
     
-    void MutateBenchmark(std::vector<uint32_t> shape);
+    void MutateBenchmark();
 };
 
 #endif // !TESTS_HPP */

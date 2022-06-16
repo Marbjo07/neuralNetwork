@@ -7,98 +7,69 @@
 #define BACKPROPAGATION_CU
 
 
-__global__ void computeDeltaHiddenLayers(float* delta, const float* nextDelta, const float* nextWeight, const float* activations, const int functionNum, const int size, const int nextSize) {
 
-    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
-
-    if (id == 0) {
-        for (int j = 0; j < size; j++) {
-
-            // compute error
-            float error = 0;
-
-            for (int neu = 0; neu < nextSize; neu++) {
-                 error += nextWeight[j * nextSize + neu] * nextDelta[neu];
-            }
-
-            float x = activations[j];
-            float deriv = 0;
-
-            // sigmoid
-            if (functionNum == 0) {
-                deriv = x * (1.0 - x);
-            }
-            // relu
-            else if (functionNum == 1) {
-                deriv = x > 0.0 ? 1.0 : 0.0;
-            }
-            // tanh
-            else if (functionNum == 2) {
-                deriv = expf(2 * x) + 1.0;
-                deriv = (4.0 / deriv) - (4.0 / (deriv * deriv));
-            }
-            // none
-            else if (functionNum == 3) {
-                deriv = 1.0;
-            }
-            // custom
-            else if (functionNum == 4) {
-                deriv = (2.0 / (expf(-x) + 1.0)) - 1.0;
-            }
-            
-            delta[j] = error * deriv;
-        }
-    }
-}
-
-__global__ void computeDeltaLastLayer(float* delta, const float* activations, float* expected, const int functionNum, const int size) {
+__global__ void computeDelta(float* delta, float* newDelta, const float* error, const float* activations, const int functionNum, const int size) {
 
     int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
     for (; id < size; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
 
         float x = activations[id];
-        float tmp = 0;
+        float deriv = 0;
 
         // sigmoid
         if (functionNum == 0) {
-            tmp = x * (1 - x);
+            deriv = x * (1 - x);
         }
         // relu
         else if (functionNum == 1) {
-            tmp = x > 0 ? 1 : 0;
+            deriv = x > 0 ? 1 : 0;
         }
         // tanh
         else if (functionNum == 2) {
-            tmp = expf(2 * x) + 1;
-            tmp = (4 / tmp) - (4 / (tmp * tmp));
+            deriv = expf(2 * x) + 1;
+            deriv = (4 / deriv) - (4 / (deriv * deriv));
         }
-        // none
+        // linear
         else if (functionNum == 3) {
-            tmp = 1;
+            deriv = 1;
         }
         // custom
         else if (functionNum == 4) {
-            tmp = (2 / (expf(-x) + 1)) - 1;
+            deriv = (2 / (expf(-x) + 1)) - 1;
         }
-
-        //                |-------------------------| error
-        delta[id] = tmp * (activations[id] - expected[id]);
-
+        newDelta[id] = error[id] * deriv;
+        delta[id] += newDelta[id];
     }
 }
 
-__global__ void weightUpdate(float* delta, float* prevLayerActivations, float* weights, float learningRate, const int prevSize, const int size) {
+__global__ void computeErrorHiddenLayer(float* error, const float* nextWeights, const float* nextNewDelta, const int size, const int nextSize) {
+    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+    for (int j = id; j < size; j += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+
+        error[j] = 0;
+        for (int i = 0; i < nextSize; i++) {
+            error[j] += nextWeights[j * nextSize + i] * nextNewDelta[i];
+        }
+
+    }
+
+
+
+}
+
+__global__ void weightUpdate(const float* delta, const float* prevLayerActivations, float* weights, const float learningRate, const int prevSize, const int size) {
 
     int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
-    if (id == 0) {
-        for (int neuronNum = 0; neuronNum < prevSize; neuronNum++) {
-            for (int j = 0; j < size; j++) {
-                 weights[neuronNum * size + j] -= learningRate * delta[j] * prevLayerActivations[neuronNum];
-            }
-        }
-    }
+
+   for (; id < prevSize; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+       for (int j = 0; j < size; j++) {
+           weights[id * size + j] -= learningRate * delta[j] * prevLayerActivations[id];
+       }
+   }
 }
+
 
 void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, const std::vector<std::vector<float>> correctOutput,
     const float updateWeightsAfterEveryBackPass,
@@ -108,10 +79,11 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
 
     cudaSetDevice(m_deviceNum);
 
-    dim3 DimGrid(1, 1, 1);
-    dim3 DimBlock(1, 1, 1);
+    dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
+    dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
 
     float* d_expectedOutput = NULL;
+
     cudaMalloc(&d_expectedOutput, sizeof(float) * m_shape.back());
 
     int datasetIndex = 0;
@@ -130,28 +102,49 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
         }
 
         setInput(dataset[datasetIndex]);
-
         feedForward();
 
         cudaMemcpy(d_expectedOutput, correctOutput[datasetIndex].data(), m_shape.back() * sizeof(float), cudaMemcpyHostToDevice);
+        CHECK_FOR_KERNEL_ERRORS;
+
+        GpuHelperFunc::forEach::sub <<<1, 1, 0, m_deviceStream >> > (m_layers.back().d_error, m_layers.back().d_activations, d_expectedOutput, m_shape.back());
+        CHECK_FOR_KERNEL_ERRORS;
 
         int funcNum = getActivationFuncNum(m_numberLayers - 1);
-        computeDeltaLastLayer << <1, 1, 0, m_deviceStream >> > (m_layers.back().d_delta, m_layers.back().d_activations, d_expectedOutput, funcNum, m_layers.back().m_numberNeurons);
-        CHECK_FOR_KERNEL_ERRORS("NEURALNET::backpropagation, computeDeltaLastLayer");
+        computeDelta << <DimGrid, DimBlock, 0, m_deviceStream >> > (
+            m_layers.back().d_delta, 
+            m_layers.back().d_newDelta,  
+            m_layers.back().d_activations, 
+            m_layers.back().d_error,
+            funcNum, 
+            m_shape.back()
+        );
+
+        CHECK_FOR_KERNEL_ERRORS;
 
         for (int layerNum = m_numberLayers - 2; layerNum > 0; layerNum--) {
 
-            int funcNum = getActivationFuncNum(layerNum);
-            computeDeltaHiddenLayers << <1, 1, 0, m_deviceStream >> > (
-                m_layers[layerNum].d_delta,
-                m_layers[layerNum + 1].d_delta,
+            computeErrorHiddenLayer << <DimGrid, DimBlock, 0, m_deviceStream >> > (
+                
+                m_layers[layerNum].d_error,
                 m_layers[layerNum + 1].d_weights,
-                m_layers[layerNum].d_activations,
-                funcNum,
+                m_layers[layerNum + 1].d_newDelta,
                 m_shape[layerNum],
-                m_shape[layerNum + 1]);
+                m_shape[layerNum + 1]
+            );
+            CHECK_FOR_KERNEL_ERRORS;
 
-            CHECK_FOR_KERNEL_ERRORS("NEURALNET::backpropagation, computeDeltaHiddenLayers");
+            int funcNum = getActivationFuncNum(layerNum);
+            computeDelta <<<DimGrid, DimBlock, 0, m_deviceStream>>>(
+                m_layers[layerNum].d_delta, 
+                m_layers[layerNum].d_newDelta,
+                m_layers[layerNum].d_error, 
+                m_layers[layerNum].d_activations, 
+                funcNum, 
+                m_shape[layerNum]
+            );
+
+            CHECK_FOR_KERNEL_ERRORS;
         }
 
 
@@ -163,21 +156,25 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
     }
     if (averageOutDeltas) {
         for (int layerNum = m_numberLayers - 1; layerNum > 0; layerNum--) {
-            GpuHelperFunc::forEach::constVal::div << <1, 1, 0, m_deviceStream >> > (m_layers[layerNum].d_delta, m_layers[layerNum].d_delta, (float)batchSize, m_shape[layerNum]);
-            CHECK_FOR_KERNEL_ERRORS("NEURALNET::backpropagation, GpuHelperFunc::forEach::constVal::div");
+            GpuHelperFunc::forEach::constVal::div << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[layerNum].d_delta, m_layers[layerNum].d_delta, (float)batchSize, m_shape[layerNum]);
+            CHECK_FOR_KERNEL_ERRORS;
         }
     }
+
 
     return;
 }
 
 
 void NeuralNet::updateWeights(float learning_rate) {
-    
+
     cudaSetDevice(m_deviceNum);
 
+    dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
+    dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
+
     for (int layerNum = m_numberLayers - 1; layerNum > 0; layerNum--) {
-        weightUpdate << <1, 1, 0, m_deviceStream >> > (
+        weightUpdate << <DimGrid, DimBlock, 0, m_deviceStream >> > (
             m_layers[layerNum].d_delta,
             m_layers[layerNum - 1].d_activations,
             m_layers[layerNum].d_weights,
@@ -185,7 +182,8 @@ void NeuralNet::updateWeights(float learning_rate) {
             m_shape[layerNum - 1],
             m_shape[layerNum]
             );
-        CHECK_FOR_KERNEL_ERRORS("NEURALNET::updateWeights, weightUpdate");
+        CHECK_FOR_KERNEL_ERRORS;
+    
     }
 
     return;
@@ -195,8 +193,8 @@ void NeuralNet::clearDelta() {
     cudaSetDevice(m_deviceNum);
 
     for (int layerNum = 0; layerNum < m_numberLayers; layerNum++) {
-        GpuHelperFunc::setAllValuesInArrayToOneVal<<<1, BLOCK_SIZE_NEURALNETWORK, 0, m_deviceStream >>>(m_layers[layerNum].d_delta, m_shape[layerNum], 0);
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::clearDelta()");
+        GpuHelperFunc::setAllElemetnsInArrayToOneVal << <1, BLOCK_SIZE_NEURALNETWORK, 0, m_deviceStream >> > (m_layers[layerNum].d_delta,    m_shape[layerNum], 0);
+        CHECK_FOR_KERNEL_ERRORS;
     }
 
     return;

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-One data point is one call to feedforward()
-
 model shape = {3, 256, 1024, 4096, 4096, 1024, 256, 3}
 
 Feedforward()   | Data points in microseconds                                               |   Total |  Average | Change 
@@ -23,33 +15,49 @@ GPU v10			|  22502  22419  22941  22732   22981   22866   22567  24217   23525  
 GPU v11			|  15651  15360  15952  15755   15838   15730   16103  15563   15529  15615 |  157096 |  15709.6 | shared memory 
 GPU v12		    |  25190  25498  24177  25283   25195   25592   25597   24074  25390  25412 |  251408 |  25140.8 | almost every weight was 0
 GPU v13			|   1555   1534   1510   1514    1504    1640    1942    1536   1579   1594 |   15908 |   1590.8 | stopped being dumb and used cuBLAS.
+GPU v14			|    846    815    831    832     820     816     818     847    796    817 |	 8238 |    823.8 | checks functionNum before looping through activations. This removes alot of unnecessary if statments but reduces readability
 
-One data point is one call to Init()
 
 model shape = {3, 256, 1024, 4096, 4096, 1024, 256, 3}
 
-Init function | Data point in microseconds                                            |  Total time | Average | Change
-v1            | 221301 252704 200037 200320 201713 198987 198042 198444 199069 202674 | 2.07329e+06 |  207329 |
-v2			  |  15587   9304   8703   9017   8714   8636   9523   9492   8652   9065 |       96693 |  9669.3 | weights, bias and activations is always stored on the GPU and if init is called twice and it has the same shape as prev had it just randomizes weights, bias and activations instead of deleting everything and reallocating.
-v3			  |  12919   4725   3237   2624   2661   2855   2998   2598   2576   2588 |		  39781 |  3978.1 | one bias per layer previous had one per neuron. Read that I previously had done it wrong.
-v4			  |	  8430   1406   1595   1579   1585   1588   1359   1655   1804   1378 |       22379 |  2237.9 | Faster random function
-v5			  |  14305  13529  14069  13836  13883  14556  13731  14114  13295  13261 |		 138579 | 13857.9 | almost every weight was 0 started using curandGenerator_t(CURAND_RNG_PSEUDO_XORWOW)
+Init()	| Data point in microseconds                                            |       Total | Average | Change
+v1      | 221301 252704 200037 200320 201713 198987 198042 198444 199069 202674 | 2.07329e+06 |  207329 |
+v2		|  15587   9304   8703   9017   8714   8636   9523   9492   8652   9065 |       96693 |  9669.3 | weights, bias and activations is always stored on the GPU and if init is called twice and it has the same shape as prev had it just randomizes weights, bias and activations instead of deleting everything and reallocating.
+v3		|  12919   4725   3237   2624   2661   2855   2998   2598   2576   2588 |       39781 |  3978.1 | one bias per layer previous had one per neuron.
+v4		|	8430   1406   1595   1579   1585   1588   1359   1655   1804   1378 |       22379 |  2237.9 | Faster random function
+v5		|  14305  13529  14069  13836  13883  14556  13731  14114  13295  13261 |      138579 | 13857.9 | almost every weight was 0 and started using curandGenerator_t(CURAND_RNG_PSEUDO_XORWOW)
+v6		|   4501   4528   4215   3992   4025   4113   4225   4139   4900   3964 |		42602 |  4260.2 | changed some projectsettings and got a new gpu(1060 3gb -> 3060)
 
-
-
-One data point is one call to Mutate()
 
 models shape = {3, 256, 256, 256, 256, 256, 256, 3}
 
-Mutate function | Data point in microseconds    | Total time | Average | Change
-v1              | 34611 34167 34216 35725 34166 |   172885   | 34577   | Normal loop.
-v2              | 27874 27784 28145 27764 27422 |   138989   | 27797.8 | The loop is parsely written out increments of 8.
-v3              | 24141 23017 22812 22887 24152 |   117009   | 23401.8 | Calls a function that mutates one neuron at a time and the loop is parsely written out increments of 8.
-v4              | 22068 21191 21492 21099 21070 |   106920   | 21384   | Pointer to random generatior instead of copying it.
-v5              | 19081 19240 18679 18718 18640 |    94358   | 18871.6 | Saved random number generators max in a uint32_t varible.
-v6              | 19933 19168 17493 17337 17739 |    91670   | 18334   | Changed the math. From (2r - 1)m where r = random / random max and m equals mutationStrength to (r-1)m where r = random / random max / 2 and m equals mutationStrength.
-v7              | 19032 17991 18020 17442 18056 |    90541   | 18108.2 | Changed the math. To randomNumber * constVal - mutationStrength. Where constVal = (2 / randomNumber.max) * mutationStrength.
-v8              | 18040 16701 17250 17065 16690 |    85746   | 17149.2 | Made a varible at the start of merge function equal to randomNumber * constVal - mutationStrength. Where constVal = (2 / random max) * mutationStrength.
-v9              |   813   866   801   835   911 |     4226   |   845.2 | Custom random number generator
-v10				|   230   225   226   224   224 |     1129   |	 225.8 | Every thing is on the GPU
-v11				|   862   930   888   611   507 |	  3798   |   759.6 | Because almost every weight was 0 it was fæst.
+Mutate()  | Data point in microseconds    |  Total | Average | Change
+v1        | 34611 34167 34216 35725 34166 | 172885 | 34577   | Normal loop.
+v2        | 27874 27784 28145 27764 27422 | 138989 | 27797.8 | The loop is parsely written out increments of 8.
+v3        | 24141 23017 22812 22887 24152 | 117009 | 23401.8 | Calls a function that mutates one neuron at a time and the loop is parsely written out increments of 8.
+v4        | 22068 21191 21492 21099 21070 | 106920 | 21384   | Pointer to random generatior instead of copying it.
+v5        | 19081 19240 18679 18718 18640 |  94358 | 18871.6 | Saved random number generators max in a uint32_t varible.
+v6        | 19933 19168 17493 17337 17739 |  91670 | 18334   | Changed the math. From (2r - 1)m where r = random / random max and m equals mutationStrength to (r-1)m where r = random / random max / 2 and m equals mutationStrength.
+v7        | 19032 17991 18020 17442 18056 |  90541 | 18108.2 | Changed the math. To randomNumber * constVal - mutationStrength. Where constVal = (2 / randomNumber.max) * mutationStrength.
+v8        | 18040 16701 17250 17065 16690 |  85746 | 17149.2 | Made a varible at the start of merge function equal to randomNumber * constVal - mutationStrength. Where constVal = (2 / random max) * mutationStrength.
+v9        |   813   866   801   835   911 |   4226 |   845.2 | Custom random number generator
+v10		  |   230   225   226   224   224 |   1129 |   225.8 | Every thing is on the GPU
+v11		  |   862   930   888   611   507 |	  3798 |   759.6 | Every weight was 0
+v12		  |	  227   393   235   458   314 |	  1627 |   325.4 | Changed some projectsettings and got a new gpu(1060 3gb -> 3060)
+
+
+models shape = {3, 256, 1024, 4096, 4096, 1024, 256, 3}
+ 
+Stochastic Gradient Descent
+backpropagation(dataset, labels, learning_rate)	| Data point in microseconds                                            |       Total | Average | Change
+v1                                              | 397389 396361 400190 397923 394232 400125 400256 394830 397166 395645 | 3.97412e+06 | 397412  | 
+
+
+Gradient Descent 
+backpropagation(dataset, labels, NULL, 0, false, true) | Data point in microseconds                                  |  Total |  Average | Change
+v1                                                     | 80113 79478 79541 80205 79761 79804 78759 78027 78773 78620 | 793081 |  79308.1 | 
+
+
+Random Mini Batch Gradient Descent
+backpropagation(dataset, labels, NULL, batchSize, true) | Data point in microseconds                                  |  Total | Average | Change
+v1                                                      | 23719 23958 23680 24646 23807 23972 23585 23396 23361 23426 | 237550 |   23755 | 

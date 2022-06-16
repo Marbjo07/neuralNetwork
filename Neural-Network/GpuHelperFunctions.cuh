@@ -2,7 +2,7 @@
 
 namespace GpuHelperFunc {
 
-	__global__ void setAllValuesInArrayToOneVal(float* arrayToChange, const uint32_t size, const float val);
+	__global__ void setAllElemetnsInArrayToOneVal(float* arrayToChange, const uint32_t size, const float val);
 
 	__global__ void printArray(float* arrayToPrint, const uint32_t size);
 

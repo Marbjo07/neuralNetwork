@@ -42,12 +42,14 @@ public:
 
             uint32_t m_numberNeurons = 0;
 
-            float m_bias = 1;
+            float m_bias = 0;
             float* d_weights = NULL;
             float* d_activations = NULL;
             float* d_delta = NULL;
+            float* d_newDelta = NULL;
+            float* d_error = NULL;
             // Every weight is set to defualtWeight if its not eqaul to NULL
-            ANN(const int deviceNum, int numberOfNeurons, int numberOfNeuronsPrevLayer = 0, const float defualtWeight = NULL);
+            ANN(const int deviceNum, int numberOfNeurons, int numberOfNeuronsPrevLayer = 0);
 
             void setActivation(const int deviceNum, std::vector<float> a);
 
@@ -101,8 +103,8 @@ public:
     void clearDelta();
 
     // Dont call init after loading from a path
-    void init(std::string name, int64_t seed, const float defualtWeight = NULL);
-
+    void init(std::string name, int64_t seed, const float weightDivisor = NULL, const float defualtWeight = NULL);
+    
     // Returns last layer activation
     float* getOutput();
 
@@ -135,8 +137,11 @@ public:
     // Not recomended on large models
     void printActivations();
 
-    // Prints every delta for every neuron 
+    // Prints delta for every neuron 
     void printDeltas();
+
+    // Prints newdelta for every neuron 
+    void printNewDeltas();
 
     // Prints output of model
     void printOutput();
@@ -158,6 +163,8 @@ public:
 
     // Returns sum of weights and bias
     float sumOfWeightsAndBias();
+
+    float sumOfDeltas();
 
     // Returns collective error of all the tests given
     float performTest(std::vector<std::vector<float>> testData, std::vector<std::vector<float>> expectedOutput);

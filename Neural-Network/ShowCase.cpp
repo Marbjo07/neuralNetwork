@@ -2,6 +2,10 @@
 
 
 int main() {
+
+    Test::runBenchmarks();
+    return 1;
+
     
     // important to say hello
     printf("Hello World\n");
@@ -14,71 +18,140 @@ int main() {
     std::vector< std::vector< float > > dataset = {};
     std::vector< std::vector< float > > labels= {};
 
-    int numberOfDatapoints = 10;
+    const int numberOfDatapoints = 10;
 
-    for (int i = 0; i < numberOfDatapoints; i++) {
-        dataset.push_back({ 
-            float(i) / numberOfDatapoints
-        });
+    const int numberOfInputsAndOutputs = 1;
 
-        labels.push_back({ 
-            float(i) / numberOfDatapoints
-        });
-    }
+    const int batchSize = numberOfDatapoints / 3;
 
-    for (auto x : dataset) std::cout << x[0] << " ";
-    printf("\n");
-    for (auto x : labels) std::cout << x[0] << " ";
-    printf("\n");
+    const int trainingMethod = 0; // SGD, GD, RMBGD
 
     float learning_rate = 0.1;
 
+    
+    for (int i = 0; i < numberOfDatapoints; i++) {
+        
+        dataset.push_back({});
+
+        for (int j = 0; j < numberOfInputsAndOutputs; j++) {
+            dataset[i].push_back(float(i + 1) / numberOfDatapoints);
+        }
+
+        labels.push_back({});
+
+        for (int j = 0; j < numberOfInputsAndOutputs; j++) {
+            labels[i].push_back(std::sin(dataset[i][j]));
+        }
+    }
+
+    for (int i = 0; i < numberOfDatapoints; i++) {
+        printf("Input:\t\t{");
+       
+        for (auto& x : dataset[i]) {
+            printf("%.3f ", x);
+        }
+        printf("}\nCorrect Output:\t{");
+
+        for (auto& x : labels[i]) {
+            printf("%.3f ", x);
+        }
+        printf("}\n");
+
+    }
 
     NeuralNet model;
 
 
-    model.m_shape = { 1, 100, 1 };
-    model.m_activationFunctions = { "relu", "relu"};
-    model.m_deviceNum = 0;
+    model.m_shape = { numberOfInputsAndOutputs, 256, numberOfInputsAndOutputs };
+    model.m_activationFunctions = { "sigmoid", "sigmoid"};
+    model.m_deviceNum = 1;
 
     // Makes all weights and bias
     // Init will clear model if already called!
-    // If defualtWeight is specified every weight is set to that value
+    // If defualtWeight is specified every weight is set to that value 
     // "AI" is the name of the model. The name is printed in warrnings
-    
-    model.init("AI", clock());
+    model.init("AI", clock(), 5);
 
 
     printf("loss: %.6f\n", model.performTest(dataset, labels));
 
-    model.printWeightsAndBias();
+    //model.printWeightsAndBias();
 
+    float prevLoss = 0;
+    float loss = 0;
 
-    for (int epoch = 0; epoch < 1000; epoch++) {
+    for (int epoch = 0; epoch < epoch + 1; epoch++) {
 
         if (epoch % 10 == 0) {
-            printf("loss: %.6f\n", model.performTest(dataset, labels));
+            prevLoss = loss;
+            loss = model.performTest(dataset, labels);
+            printf("epoch: %d \tloss: %.12f \tdif: %.12f\n",epoch, loss, loss - prevLoss);
         }
 
-#if 0
-        model.backpropagation(dataset, labels, NULL, 0, 0, true);
-        model.updateWeights(learning_rate);
-        model.clearDelta();
-#else
-        model.backpropagation(dataset, labels, learning_rate);
+        if (trainingMethod == 0) {
+            // Stochastic Gradient Descent
+            model.backpropagation(dataset, labels, learning_rate);
+            cudaDeviceSynchronize();
+            
+        }
+        else if (trainingMethod == 1) {
+            // Gradient Descent 
+            model.backpropagation(dataset, labels, NULL, 0, false, true);
+            cudaDeviceSynchronize();
 
-#endif
+        }
+        else if (trainingMethod == 2) {
+            // Random Mini Batch Gradient Descent
+            model.backpropagation(dataset, labels, NULL, batchSize, true);
+            cudaDeviceSynchronize();
 
+        }
+
+
+        if (trainingMethod != 0) {
+            // update weights
+            // !Dont use this if you use Stochastic Gradient Descent!
+            model.updateWeights(learning_rate);
+            cudaDeviceSynchronize();
+
+            // clear delta after updating weights
+            // !Dont use this if you use Stochastic Gradient Descent!
+            model.clearDelta();
+            cudaDeviceSynchronize();
+
+        }
     }
 
     printf("loss: %.6f\n", model.performTest(dataset, labels));
 
     for (int i = 0; i < dataset.size(); i++) {
-        model.setInput(labels[i]);
+        model.setInput(dataset[i]);
 
         model.feedForward();
 
-        printf("Input: %.3f, Correct Output: %.3f, Output: %.3f, Dif: %.3f\n", dataset[i][0], labels[i][0], model.getOutput()[0], abs(labels[i][0] - model.getOutput()[0]));
+
+        printf("Input:\t\t{");
+
+        for (auto& x : dataset[i]) {
+            printf("%.3f ", x);
+        }
+        printf("}\nCorrect Output:\t{");
+
+        for (auto& x : labels[i]) {
+            printf("%.3f ", x);
+        }
+        printf("}\nOutput:\t\t{");
+        
+        GpuHelperFunc::usePrintArrayFromCppFile(model.m_layers.back().d_activations, model.m_shape.back(), model.m_deviceNum, model.m_deviceStream);
+
+        printf("}\nDif:\t\t{");
+
+        for (int j = 0; j < model.m_shape.back(); j++) {
+        
+            printf("%.3f ", abs(labels[i][j] - model.getOutput()[j]) );
+            
+        }
+        printf("}\n-----------\n");
     }
 
     // Saving and Loading is not nesseary but its just shown here.
@@ -87,18 +160,13 @@ int main() {
     // Loads a pretraind model
     // Just make a empty model and load from bin file
     // DO NOT call init after loading model because this will clear the loaded model.
+    model.printWeightsAndBias();
+
     model.save(savePath);
 
     model.load(savePath);
 
     model.printWeightsAndBias();
-
-    model.printActivations();
-
-    model.printOutput();
-
-    // Prints sum of weights and bias used in debuging.
-    printf("Sum of weight and bias: %.6f\n", model.sumOfWeightsAndBias());
 
     printf("Duration in milliseconds: %lld\n", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - t1).count());
 

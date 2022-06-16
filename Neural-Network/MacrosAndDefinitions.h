@@ -1,20 +1,10 @@
 #pragma once
 
-#define SIZEOF(x) sizeof(x) / sizeof(x[0])
+#define GRID_SIZE_NEURALNETWORK 4
+#define BLOCK_SIZE_NEURALNETWORK 32
 
 
-// have to be equal
-// use cuda kernel functions
-#define ACTIVATION_FUNCTION_GPU(x) x
-// use cpu functions
-#define ACTIVATION_FUNCTION_CPU(x) x
-
-
-#define GRID_SIZE_NEURALNETWORK 1
-#define BLOCK_SIZE_NEURALNETWORK 1
-
-
-#define CHECK_FOR_KERNEL_ERRORS(identifier)                           \
+#define CHECK_FOR_KERNEL_ERRORS                                       \
 do {                                                                  \
     /* Check synchronous errors, i.e. pre-launch */                   \
     cudaError_t err = cudaGetLastError();                             \
@@ -24,7 +14,7 @@ do {                                                                  \
         exit(EXIT_FAILURE);                                           \
     }                                                                 \
     /* Check asynchronous errors, i.e. kernel failed (ULF) */         \
-    err = cudaThreadSynchronize();                                    \
+    err = cudaDeviceSynchronize();                                    \
     if (cudaSuccess != err) {                                         \
         fprintf (stderr, "Cuda error in file '%s' in line %i : %s.\n",\
                  __FILE__, __LINE__, cudaGetErrorString( err) );      \

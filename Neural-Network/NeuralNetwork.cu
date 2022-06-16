@@ -10,7 +10,7 @@
 // Layer class:
 //
 
-NeuralNet::Layer::ANN::ANN(const int deviceNum, int numberOfNeurons, int numberOfNeuronsPrevLayer, const float defualtWeight) {
+NeuralNet::Layer::ANN::ANN(const int deviceNum, int numberOfNeurons, int numberOfNeuronsPrevLayer) {
 
     cudaSetDevice(deviceNum);
 
@@ -20,8 +20,8 @@ NeuralNet::Layer::ANN::ANN(const int deviceNum, int numberOfNeurons, int numberO
     cudaMalloc(&d_weights, sizeof(float) * numberOfNeurons * numberOfNeuronsPrevLayer);
 
     cudaMalloc(&d_delta, sizeof(float) * numberOfNeurons);
-
-
+    cudaMalloc(&d_newDelta, sizeof(float) * numberOfNeurons);
+    cudaMalloc(&d_error, sizeof(float) * numberOfNeurons);
 
 
 }
@@ -78,10 +78,10 @@ void NeuralNet::setRandomInput(int64_t seed) {
 
     curandGenerateUniform(gen, m_layers.front().d_activations, m_shape[0]);
 
-    CHECK_FOR_KERNEL_ERRORS("NeuralNet::setRandomInput()");
+    CHECK_FOR_KERNEL_ERRORS;
 }
 
-void NeuralNet::init(std::string name, int64_t seed, const float defualtWeight) {
+void NeuralNet::init(std::string name, int64_t seed, const float weightDivisor, const float defualtWeight) {
     cudaSetDevice(m_deviceNum);
 
     cudaStreamCreate(&m_deviceStream);
@@ -100,7 +100,7 @@ void NeuralNet::init(std::string name, int64_t seed, const float defualtWeight) 
     m_totalNumberOfNeurons = m_shape[0];
 
     for (int i = 1; i < m_shape.size(); i++) {
-        m_layers.emplace_back(Layer::ANN(m_deviceNum, m_shape[i], m_shape[i - 1], defualtWeight));
+        m_layers.emplace_back(Layer::ANN(m_deviceNum, m_shape[i], m_shape[i - 1]));
         m_totalNumberOfNeurons += m_shape[i];
 
 
@@ -108,50 +108,40 @@ void NeuralNet::init(std::string name, int64_t seed, const float defualtWeight) 
             dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
             dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
 
-            GpuHelperFunc::setAllValuesInArrayToOneVal << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[i].d_weights, m_shape[i] * m_shape[i - 1], defualtWeight);
+            GpuHelperFunc::setAllElemetnsInArrayToOneVal << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[i].d_weights, m_shape[i] * m_shape[i - 1], defualtWeight);
 
-            CHECK_FOR_KERNEL_ERRORS("NeuralNet::init");
+            CHECK_FOR_KERNEL_ERRORS;
         }
 
 
 
     }
-
-    curandCreateGenerator(&m_cudaRandGen, CURAND_RNG_PSEUDO_XORWOW);
-
-    curandSetPseudoRandomGeneratorSeed(m_cudaRandGen, seed);
-    
     if (defualtWeight == NULL) {
+
+        curandCreateGenerator(&m_cudaRandGen, CURAND_RNG_PSEUDO_XORWOW);
+
+        curandSetPseudoRandomGeneratorSeed(m_cudaRandGen, seed);
+    
         random(seed);
     }
 
-    for (int i = 1; i < m_shape.size(); i++) {
-     
-        dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
-        dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
+    if (weightDivisor != NULL && weightDivisor != 1 && weightDivisor != 0) {
 
-        GpuHelperFunc::multiplyBy2AndSub1 << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[i].d_weights, m_shape[i] * m_shape[i - 1]);
+        for (int i = 1; i < m_shape.size(); i++) {
 
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::init");
+            dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
+            dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
 
+            GpuHelperFunc::forEach::constVal::div << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[i].d_weights, m_layers[i].d_weights, m_shape[i] * m_shape[i - 1], weightDivisor);
+
+            CHECK_FOR_KERNEL_ERRORS;
+
+        }
     }
-
     cublasCreate(&m_feedForwardHandle);
 
     if (m_activationFunctions.size() - 1 != m_shape.size()) {
         m_activationFunctions.resize(m_shape.size() - 1, "linear");
-    }
-
-    
-
-    dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
-    dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
-
-    for (int i = 0; i < m_numberLayers; i++) {
-
-        GpuHelperFunc::setAllValuesInArrayToOneVal << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[i].d_delta, m_shape[i], defualtWeight);
-
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::init");
     }
 }
 
@@ -242,7 +232,7 @@ void NeuralNet::load(std::string path) {
         loadFile.read(reinterpret_cast<char*>(&m_shape[0]), sizeOfShape * sizeof(int));
         
         // Initialize without random weights
-        init(modelName, 0);
+        init(modelName, 0, 0, 1);
 
 
         // Load value of weights
@@ -285,7 +275,7 @@ void NeuralNet::printWeightsAndBias() {
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
         GpuHelperFunc::printArray<<<1,1, 0, m_deviceStream >>>(m_layers[layerNum].d_weights, m_shape[layerNum - 1] * m_shape[layerNum]);
         
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::printWeightsAndBias()");
+        CHECK_FOR_KERNEL_ERRORS;
    
         printf("\n");
     }
@@ -307,7 +297,7 @@ void NeuralNet::printActivations() {
     for (uint32_t layerNum = 0; layerNum < m_numberLayers; layerNum++) {
         GpuHelperFunc::printArray<<<1,1, 0, m_deviceStream >>>(m_layers[layerNum].d_activations, m_layers[layerNum].m_numberNeurons);
 
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::printActivations()");
+        CHECK_FOR_KERNEL_ERRORS;
     }
     printf("\n\n");
         
@@ -318,11 +308,25 @@ void NeuralNet::printDeltas() {
 
     printf("[Deltas '%s']: \n", m_name.c_str());
 
-    // every col is the weights for one neuron
-    for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
-        GpuHelperFunc::printArray << <1, 1, 0, m_deviceStream >> > (m_layers[layerNum].d_weights, m_shape[layerNum]);
+    for (uint32_t layerNum = 0; layerNum < m_numberLayers; layerNum++) {
+        GpuHelperFunc::printArray << <1, 1, 0, m_deviceStream >> > (m_layers[layerNum].d_delta, m_shape[layerNum]);
 
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::printDeltas()");
+        CHECK_FOR_KERNEL_ERRORS;
+
+        printf("\n");
+    }
+
+}
+
+void NeuralNet::printNewDeltas() {
+    cudaSetDevice(m_deviceNum);
+
+    printf("[NewDeltas '%s']: \n", m_name.c_str());
+
+    for (uint32_t layerNum = 0; layerNum < m_numberLayers; layerNum++) {
+        GpuHelperFunc::printArray << <1, 1, 0, m_deviceStream >> > (m_layers[layerNum].d_newDelta, m_shape[layerNum]);
+
+        CHECK_FOR_KERNEL_ERRORS;
 
         printf("\n");
     }
@@ -336,9 +340,9 @@ void NeuralNet::random(uint64_t seed) {
 
         curandGenerateUniform(m_cudaRandGen, m_layers[layerNum].d_weights, m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons);
         
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::random()");
+        CHECK_FOR_KERNEL_ERRORS;
         
-       m_layers[layerNum].m_bias = Random::Default();
+        m_layers[layerNum].m_bias = 0;//Random::Default();
     }
 }
 
@@ -349,7 +353,7 @@ void NeuralNet::mutate(float mutationStrength) {
 
         Random::MutateArray(m_layers[layerNum].d_weights, &m_cudaRandGen, m_shape[layerNum] * m_shape[layerNum - 1]);
 
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::printActivations()");
+        CHECK_FOR_KERNEL_ERRORS;
 
         m_layers[layerNum].m_bias *= Random::Default();
     }
@@ -365,7 +369,7 @@ float NeuralNet::sumOfWeightsAndBias() {
 
         GpuHelperFunc::sumOfArray<<<1, 1, 0, m_deviceStream >>>(m_layers[layerNum].d_weights, m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons, sum);
         
-        CHECK_FOR_KERNEL_ERRORS("NeuralNet::sumOfWeightsAndBias()");
+        CHECK_FOR_KERNEL_ERRORS;
 
         sum += m_layers[layerNum].m_bias;
     }
@@ -420,7 +424,7 @@ float NeuralNet::performTest(std::vector<std::vector<float>> testData, std::vect
         error += LossFunction(feedForward(), expectedOutput[i]);
     }
 
-    return error;
+    return error / testData.size();
 }
 
 void NeuralNet::printOutput() {
@@ -428,7 +432,7 @@ void NeuralNet::printOutput() {
 
     printf("[Output '%s']: ", m_name.c_str());
     GpuHelperFunc::printArray << <1, 1, 0, m_deviceStream >> > (m_layers[m_numberLayers - 1].d_activations, m_layers[m_numberLayers - 1].m_numberNeurons);
-    CHECK_FOR_KERNEL_ERRORS("NeuralNet::printOutput");
+    CHECK_FOR_KERNEL_ERRORS;
 }
 
 
@@ -444,7 +448,9 @@ void NeuralNet::optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBloc
     setRandomInput(std::rand());
 
     auto start = std::chrono::high_resolution_clock::now();
-    feedForward(1, 1);
+    for (auto k = 0; k < numberOfTest; ++k) {
+        feedForward(1, 1);
+    }
     auto minDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
 
 
@@ -453,7 +459,7 @@ void NeuralNet::optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBloc
             
             // progress bar
             progress += 1.0f / ((maxGrid) * (maxBlock - 1));
-            std::cout << "[Optimizing Feedforward Params]: [";
+            std::cout << "[Optimizing Feedforward]: [";
             int pos = barWidth * progress;
             for (int i = 0; i < barWidth; ++i) {
                 if (i < pos) std::cout << "=";
@@ -470,7 +476,7 @@ void NeuralNet::optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBloc
             for (auto k = 0; k < numberOfTest; ++k) {
                 feedForward(grid, block);
             }
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count() / numberOfTest;
 
             if (duration < minDuration) {
                 minDuration = duration;
@@ -488,7 +494,7 @@ void NeuralNet::optimizeParametersFeedforward(uint32_t maxGrid, uint32_t maxBloc
     m_gridFeedforward = bestGrid;
     m_blockFeedforward = bestBlock;
 
-    printf("\n[Optimized Feedforward Params]: (%d, %d)\n", bestGrid, bestBlock);
+    printf("\n[Optimized Feedforward]:  (%d, %d)\n", bestGrid, bestBlock);
 
 
 
@@ -527,6 +533,19 @@ void NeuralNet::printSize() {
         << " size in MB: " << (float)numberOfVaribles * sizeof(float) / 1024 / 1024 << "\n"
         << " size in GB: " << (float)numberOfVaribles * sizeof(float) / 1024 / 1024 / 1024 << "\n";
 }
+
+float NeuralNet::sumOfDeltas() {
+
+    float sum = 0;
+
+    for (int i = 0; i < m_numberLayers; i++) {
+    
+        GpuHelperFunc::sumOfArray<<<1, 1 >>>(m_layers[i].d_delta, m_shape[i], sum);
+        CHECK_FOR_KERNEL_ERRORS;
+    }
+
+}
+
 
 int NeuralNet::getActivationFuncNum(const int layerNum) {
     // shifting layerNum by -1 because the first layer dont need to be "activated"

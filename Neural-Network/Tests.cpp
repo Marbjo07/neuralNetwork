@@ -16,99 +16,6 @@ namespace Test {
             return abs(a - b) < threshold;
         }
 
-
-        std::vector<float> cpuVersionOfFeedforward(NeuralNet model) {
-
-            std::vector<float> activation;
-
-            for (size_t L = 1; L < model.m_numberLayers; ++L) {
-                
-                std::vector<float> prevActivation(model.m_shape[L - 1]);
-                activation.resize(model.m_shape[L]);
-                std::vector<float> weights(model.m_shape[L] * model.m_shape[L - 1]);
-
-                cudaMemcpy(&prevActivation[0], model.m_layers[L - 1].d_activations, model.m_shape[L - 1] * sizeof(float), cudaMemcpyDeviceToHost);
-                cudaMemcpy(&activation[0], model.m_layers[L].d_activations, model.m_shape[L] * sizeof(float), cudaMemcpyDeviceToHost);
-                cudaMemcpy(&weights[0], model.m_layers[L].d_weights, model.m_shape[L] * model.m_shape[L - 1] * sizeof(float), cudaMemcpyDeviceToHost);
-
-                
-                // Row major check
-                
-                /* for (uint32_t N = 0; N < model.m_shape[L]; N++) {
-                    float tmp = 0;
-                    for (uint32_t W = 0; W < model.m_shape[L - 1]; W++) {
-
-                        tmp += prevActivation[W] * weights[N * model.m_shape[L - 1] + W];
-                    
-                    }
-
-                    activation[N] = ACTIVATION_FUNCTION_CPU(tmp) + model.m_layers[L].m_bias;
-                } */
-
-                // Coloum major check
-
-                for (uint32_t N = 0; N < model.m_shape[L]; N++) {
-                    float tmp = 0;
-                    for (uint32_t W = 0; W < model.m_shape[L - 1]; W++) {
-                        tmp += prevActivation[W] * weights[W * model.m_shape[L] + N];
-                    }
-
-                    activation[N] = ACTIVATION_FUNCTION_CPU(tmp) + model.m_layers[L].m_bias;
-                }
-
-                cudaMemcpy(model.m_layers[L].d_activations, activation.data(), model.m_shape[L] * sizeof(float), cudaMemcpyHostToDevice);
-
-            }
-
-            return activation;
-        }
-
-        int FeedForwardTest(bool debug) {
-
-            NeuralNet testModel;
-
-            testModel.m_shape = { (uint32_t)std::rand() % 10 + 1, (uint32_t)std::rand() % 10 + 1 , (uint32_t)std::rand() % 10 + 1 , (uint32_t)std::rand() % 10 + 1 };
-            testModel.init("FeedForwardTest", std::rand());
-            for (auto s = 0; s < 4; s++) {
-
-                testModel.setRandomInput(std::rand());
-                std::vector<float> expectedResults;
-
-                expectedResults = cpuVersionOfFeedforward(testModel);
-                float tmp = 0;
-                for (auto k = 0; k < 4; k++) {
-      
-                    testModel.feedForward();
-                    float output = 0;
-                    float expectation = 0;
-
-
-                    for (uint32_t n = 0; n < testModel.m_layers.back().m_numberNeurons; n++) {
-
-                        output = testModel.getOutput()[n];
-                        expectation = expectedResults[n];
-
-                        tmp += abs(output - expectation);
-
-                        if (!caEqual(output, expectation, 0.04)) {
-
-                            printf("Faild at (neuron): (%d)  Iteration: %d \nOutput: %.6f  Expectation: %.6f\n", n, k, output, expectation);
-                            for (auto i = 0; i < testModel.m_layers.back().m_numberNeurons; i++) std::cout << expectedResults[i] << " ";
-                            printf("\n");
-                            
-                            return 1;
-
-                        }
-                    }                            
-                    
-                }
-                if (debug) {
-                    std::cout << "Error: " << tmp << std::endl;
-                }
-            }
-            return 0;
-        }
-
         int MutateTest(bool debug) {
 
             NeuralNet beforeMutation;
@@ -147,29 +54,30 @@ namespace Test {
     void runBenchmarks() {
         
         NeuralNet model;
-        
         model.m_shape = { 3, 256, 1024, 4096, 4096, 1024, 256, 3 };
+        model.m_activationFunctions = { "sigmoid", "tanh", "linear", "relu", "sigmoid", "tanh", "linear" };
+        model.init("Optimizer", clock());
 
-        model.init("AI", 12345);
-        Test::InitBenchmark(model.m_shape);
 
-        Test::MutateBenchmark({ 3, 256, 256, 256, 256, 256, 256, 3 });
+        Test::InitBenchmark();
+
+        Test::MutateBenchmark();
 
 
         // Check time for feedforward
-        Test::FeedForwardBenchmark(model.m_shape);
-
+        Test::FeedForwardBenchmark();
 
         // Prints and uses the best Grids and Blocks value for feedforward
-        model.optimizeParametersFeedforward(5, 32, 3);
+        model.optimizeParametersFeedforward(5, 32, 10);
 
-        // Check time for new blocks and grid.
-        // To keep these changes set m_gridFeedforward, m_blockFeedforward to the printed values.
-        // The changes aren't big for small models but for bigger model the speed increase can be vast.
-        Test::FeedForwardBenchmark(model.m_shape);
+        // Check time with new blocks and grid.
+        // The changes aren't big for small models but for bigger model it can be better.
+        Test::FeedForwardBenchmark(model.m_gridFeedforward, model.m_blockFeedforward);
+
+        BackpropagationBenchmark(model.m_gridFeedforward, model.m_blockFeedforward);
     }
 
-    void FeedForwardBenchmark(std::vector<uint32_t> shape) {
+    void FeedForwardBenchmark(uint32_t grid, uint32_t block) {
 
         printf("[Feedforward Benchmark]: ");
 
@@ -177,15 +85,22 @@ namespace Test {
 
         NeuralNet model;
 
+        if (grid != NULL) {
+            model.m_gridFeedforward = grid;
+        }
+        if (block != NULL) {
+            model.m_blockFeedforward = block;
+        }
 
-        model.m_shape = shape;
+        model.m_shape = { 3, 256, 1024, 4096,  4096, 1024, 256, 3 };
+        model.m_activationFunctions = { "sigmoid", "tanh", "linear", "relu", "sigmoid", "tanh", "linear" };
+
 
         model.init("AI", 12345);
 
         model.setRandomInput(1);
 
         float* output;
-
 
         float total = 0;
         uint32_t numberTests = 10;
@@ -204,7 +119,92 @@ namespace Test {
         return;
     }
 
-    void InitBenchmark(std::vector<uint32_t> shape) {
+    void BackpropagationBenchmark(uint32_t grid, uint32_t block) {
+
+        printf("[Backpropagation Benchmark]: \n");
+
+        srand((uint64_t)time(NULL));
+
+        NeuralNet model;
+
+        if (grid != NULL) {
+            model.m_gridFeedforward = grid;
+        }
+        if (block != NULL) {
+            model.m_blockFeedforward = block;
+        }
+
+        model.m_shape = { 3, 256, 1024, 4096, 4096, 1024, 256, 3 };
+        model.m_activationFunctions = { "sigmoid", "tanh", "linear", "relu", "sigmoid", "tanh", "linear" };
+
+        model.init("AI", clock());
+
+
+        std::vector< std::vector< float > > dataset = {};
+        std::vector< std::vector< float > > labels = {};
+
+        const int numberOfDatapoints = 10;
+
+        const int numberOfInputsAndOutputs = model.m_shape[0];
+
+        const int batchSize = numberOfDatapoints / 3;
+
+        const int trainingMethod = 0; // SGD, GD, RMBGD
+
+        const float learning_rate = 0.1;
+
+        float total = 0;
+        const uint32_t numberTests = 10;
+
+        for (int i = 0; i < numberOfDatapoints; i++) {
+            dataset.push_back({});
+
+            for (int j = 0; j < numberOfInputsAndOutputs; j++) {
+                dataset[i].push_back(float(i + 1) / numberOfDatapoints);
+            }
+
+            labels.push_back({});
+
+            for (int j = 0; j < numberOfInputsAndOutputs; j++) {
+                labels[i].push_back((Random::Default() + 1) / 2);
+            }
+        }
+        const std::vector<std::string> trainingMethods = {
+            "\t[Stochastic Gradient Descent]:        ",
+            "\t[Gradient Descent]                    ",
+            "\t[Random Mini Batch Gradient Descent]: "
+        };
+        for (uint32_t trainingMethod = 0; trainingMethod < 3; trainingMethod++) {
+            total = 0;
+            std::cout << trainingMethods[trainingMethod];
+            
+            for (uint32_t i = 0; i < numberTests; i++) {
+                auto start = std::chrono::high_resolution_clock::now();
+                
+                if (trainingMethod == 0) {
+                    // Stochastic Gradient Descent
+                    model.backpropagation(dataset, labels, learning_rate);
+                }
+                else if (trainingMethod == 1) {
+                    // Gradient Descent 
+                    model.backpropagation(dataset, labels, NULL, 0, false, true);
+
+                }
+                else if (trainingMethod == 2) {
+                    // Random Mini Batch Gradient Descent
+                    model.backpropagation(dataset, labels, NULL, batchSize, true);
+                }
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count();
+                total += duration;
+
+                std::cout << duration << "\t";
+            }
+            std::cout << "Total: " << total << " Average: " << total / numberTests << std::endl;
+        }
+        return;
+    }
+     
+    void InitBenchmark() {
         printf("[Init Benchmark]:        ");
 
         srand((uint32_t)time(NULL));
@@ -212,7 +212,8 @@ namespace Test {
         NeuralNet model;
 
 
-        model.m_shape = shape;
+        model.m_shape = { 3, 256, 1024, 4096, 4096, 1024, 256, 3 };
+        model.m_activationFunctions = { "sigmoid", "tanh", "linear", "relu", "sigmoid", "tanh", "linear" };
 
 
         float total = 0;
@@ -232,7 +233,7 @@ namespace Test {
         return;
     }
 
-    void MutateBenchmark(std::vector<uint32_t> shape) {
+    void MutateBenchmark() {
 
         printf("[Mutate Benchmark]:      ");
 
@@ -244,8 +245,8 @@ namespace Test {
         NeuralNet model;
 
 
-        model.m_shape = shape;
-
+        model.m_shape = { 3, 256, 256, 256, 256, 256, 256, 3 };
+        model.m_activationFunctions = { "sigmoid", "tanh", "linear", "relu", "sigmoid", "tanh", "linear" };
 
         model.init("AI", std::rand());
 

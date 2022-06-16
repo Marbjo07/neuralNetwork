@@ -6,43 +6,48 @@
 #ifndef FEEDFORWARD_CPP
 #define FEEDFORWARD_CPP
 
-__global__ void activationFunction(float* activations, float bias, const int functionNum, const int size) {
+// this is ugly, but its fast
+
+__global__ void activationFunction_sigmoid(float* activations, float bias, const int functionNum, const int size) {
 
     int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
 
-
 #pragma unroll
-    for (; id < size; id += blockDim.x * blockDim.y) {
-
-        float x = activations[id];
-
-        switch (functionNum) {
-
-        // sigmoid
-        case 0:
-            activations[id] = 1 / (1 + expf(-x));
-            break;
-        // relu
-        case 1:
-            activations[id] = fmaxf(x, 0);
-            break;
-        // tanh
-        case 2:
-            activations[id] = tanh(x);
-            break;
-        // none
-        case 3:
-            break;
-        // custom
-        case 4:
-            activations[id] = 1 / (1 - x + x * x);
-            break;
-        }
-
-
-        activations[id] += bias;
+    for (; id < size; id += gridDim.x * gridDim.y * blockDim.x * blockDim.y) {
+        activations[id] = 1 / (1 + expf(-activations[id])) + bias;
     }
 }
+
+__global__ void activationFunction_relu(float* activations, float bias, const int functionNum, const int size) {
+
+    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+#pragma unroll
+    for (; id < size; id += gridDim.x * gridDim.y * blockDim.x * blockDim.y) {
+        activations[id] = fmaxf(activations[id], 0) + bias;
+    }
+}
+
+__global__ void activationFunction_tanh(float* activations, float bias, const int functionNum, const int size) {
+
+    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+#pragma unroll
+    for (; id < size; id += gridDim.x * gridDim.y * blockDim.x * blockDim.y) {
+        activations[id] = tanh(activations[id]) + bias;
+    }
+}
+
+__global__ void activationFunction_custom(float* activations, float bias, const int functionNum, const int size) {
+
+    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+#pragma unroll
+    for (; id < size; id += gridDim.x * gridDim.y * blockDim.x * blockDim.y) {
+        activations[id] = 1 / (1 - activations[id] + activations[id] * activations[id]) + bias;
+    }
+}
+
 
 __global__ void softMax_gpu(float* activations, const int size) { 
 
@@ -66,11 +71,6 @@ __global__ void softMax_gpu(float* activations, const int size) {
 
 }
 
-__global__ void testFunc(float* ar, const int size) {
-    for (int j = 0; j < size; j++) {
-        printf("%.3f ", ar[j]);
-    }
-}
 
 void NeuralNet::softMax() {
     cudaSetDevice(m_deviceNum);
@@ -78,7 +78,7 @@ void NeuralNet::softMax() {
     dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
     dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
     softMax_gpu << <DimBlock, DimGrid, 0, m_deviceStream >> > (m_layers.back().d_activations, m_shape.back());
-    CHECK_FOR_KERNEL_ERRORS("NEURALNET::FEEDFORWARD");
+    CHECK_FOR_KERNEL_ERRORS;
 }
 
 float* NeuralNet::feedForward(uint32_t gridSize, uint32_t blockSize) {
@@ -109,12 +109,42 @@ float* NeuralNet::feedForward(uint32_t gridSize, uint32_t blockSize) {
             m_deviceNum
         );
 
-        CHECK_FOR_KERNEL_ERRORS("NEURALNET::FEEDFORWARD");
+        CHECK_FOR_KERNEL_ERRORS;
+
 
 
         int functionNum = getActivationFuncNum(layerNum);
-        activationFunction << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, functionNum, m_shape[layerNum]);
-        CHECK_FOR_KERNEL_ERRORS("NEURALNET::FEEDFORWARD");
+        switch (functionNum) {
+
+            // sigmoid
+            case 0:
+                activationFunction_sigmoid << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, functionNum, m_shape[layerNum]);
+                CHECK_FOR_KERNEL_ERRORS;
+                break;
+
+
+            // relu
+            case 1:
+                activationFunction_relu << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, functionNum, m_shape[layerNum]);
+                CHECK_FOR_KERNEL_ERRORS;
+                break;
+
+            // tanh
+            case 2:
+                activationFunction_tanh << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, functionNum, m_shape[layerNum]);
+                CHECK_FOR_KERNEL_ERRORS;
+                break;
+            
+            // linear
+            case 3:
+                GpuHelperFunc::forEach::constVal::add << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[layerNum].d_activations, m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, m_shape[layerNum]);
+                break;
+
+            // custom
+            case 4:
+                activationFunction_custom << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[layerNum].d_activations, m_layers[layerNum].m_bias, functionNum, m_shape[layerNum]);
+                CHECK_FOR_KERNEL_ERRORS;
+        }
     }
 
  

@@ -27,7 +27,7 @@ namespace Random {
         z = t ^ x ^ y;
 
         // does this to get a random float between -1 and 1
-        return (float)z / 2147483648 - 1;
+        return (float)z / 2147483648 / 2;
     }
 
     __global__ void MatrixMul_1d(float* x1, float* x2, const int size) {
@@ -48,7 +48,7 @@ namespace Random {
 
         curandGenerateUniform((*randomNumberGen), randomNumbers, size);
 
-        CHECK_FOR_KERNEL_ERRORS("Random::MutateArray()");
+        CHECK_FOR_KERNEL_ERRORS;
 
 
         dim3 DimGrid(2, 2, 1);
@@ -56,7 +56,7 @@ namespace Random {
 
         MatrixMul_1d << <DimGrid, DimBlock >> > (arrayToRandomize, randomNumbers, size);
 
-        CHECK_FOR_KERNEL_ERRORS("Random::MatrixMul_1d()");
+        CHECK_FOR_KERNEL_ERRORS;
     }
 
     float Range(float x) {
