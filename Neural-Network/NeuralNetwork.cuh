@@ -98,9 +98,11 @@ public:
         const bool randomBatching = 0,
         const bool averageOutDeltas = false);
 
-    void updateWeights(float learning_rate);
+    void updateWeights(const float learning_rate);
 
     void clearDelta();
+
+    void updateWeightsAndClearDelta(const float learning_rate);
 
     // Dont call init after loading from a path
     void init(std::string name, int64_t seed, const float weightDivisor = NULL, const float defualtWeight = NULL);

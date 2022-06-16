@@ -55,6 +55,22 @@ __global__ void weightUpdate(const float* delta, const float* prevLayerActivatio
    }
 }
 
+__global__ void weightUpdateAndClearDelta(float* delta, const float* prevLayerActivations, float* weights, const float learningRate, const int prevSize, const int size) {
+
+    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
+
+    for (int j = id; j < size; j += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
+           
+        for (int i = 0; i < prevSize; i++ ) {
+
+            weights[i * size + j] -= learningRate * delta[j] * prevLayerActivations[i];
+
+        }
+        delta[j] = 0;
+
+    }
+}
+
 void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, const std::vector<std::vector<float>> correctOutput,
     const float updateWeightsAfterEveryBackPass,
     int batchSize,
@@ -134,9 +150,7 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
         }
 
         if (updateWeightsAfterEveryBackPass != NULL) {
-            updateWeights(updateWeightsAfterEveryBackPass);
-            clearDelta();
-
+            updateWeightsAndClearDelta(updateWeightsAfterEveryBackPass);
         }
 
     }
@@ -152,7 +166,7 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
 }
 
 
-void NeuralNet::updateWeights(float learning_rate) {
+void NeuralNet::updateWeights(const float learning_rate) {
 
     cudaSetDevice(m_deviceNum);
 
@@ -188,5 +202,29 @@ void NeuralNet::clearDelta() {
 
     return;
 }
+
+void NeuralNet::updateWeightsAndClearDelta(const float learning_rate) {
+
+    cudaSetDevice(m_deviceNum);
+
+    dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
+    dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
+
+    for (int layerNum = m_numberLayers - 1; layerNum > 0; layerNum--) {
+        weightUpdateAndClearDelta << <DimGrid, DimBlock, 0, m_deviceStream >> > (
+            m_layers[layerNum].d_delta,
+            m_layers[layerNum - 1].d_activations,
+            m_layers[layerNum].d_weights,
+            learning_rate,
+            m_shape[layerNum - 1],
+            m_shape[layerNum]
+            );
+        CHECK_FOR_KERNEL_ERRORS;
+
+    }
+
+    return;
+}
+
 
 #endif //!BACKPROPAGATION_CU

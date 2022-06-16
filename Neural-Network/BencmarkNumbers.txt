@@ -49,9 +49,10 @@ v12		  |	  227   393   235   458   314 |	  1627 |   325.4 | Changed some project
 models shape = {3, 256, 1024, 4096, 4096, 1024, 256, 3}
  
 Stochastic Gradient Descent
-backpropagation(dataset, labels, learning_rate)	| Data point in microseconds                                            |       Total | Average | Change
-v1                                              | 397389 396361 400190 397923 394232 400125 400256 394830 397166 395645 | 3.97412e+06 |  397412 | 
-v2                                              | 327311 325575 327319 325260 326501 325251 327093 326276 325733 326606 | 3.26292e+06 |  326292 | Using cublas for calculating error hidden layers
+backpropagation(dataset, labels, learning_rate)	| Data point in microseconds                                            |       Total | Average   | Change
+v1                                              | 397389 396361 400190 397923 394232 400125 400256 394830 397166 395645 | 3.97412e+06 |  397412   | 
+v2                                              | 327311 325575 327319 325260 326501 325251 327093 326276 325733 326606 | 3.26292e+06 |  326292   | Using cublas for calculating error hidden layers
+v3                                              |  49862  50179  50087  49984  49736  49670  50591  49884  50573  49488 |      500054 |   50005.4 | Combined clearDelta() and updateWeight() into one kernel
 
 
 Gradient Descent 
