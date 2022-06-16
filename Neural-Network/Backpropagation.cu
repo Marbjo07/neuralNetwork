@@ -43,21 +43,6 @@ __global__ void computeDelta(float* delta, float* newDelta, const float* error, 
     }
 }
 
-__global__ void computeErrorHiddenLayer(float* error, const float* nextWeights, const float* nextNewDelta, const int size, const int nextSize) {
-    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
-
-    for (int j = id; j < size; j += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
-
-        error[j] = 0;
-        for (int i = 0; i < nextSize; i++) {
-            error[j] += nextWeights[j * nextSize + i] * nextNewDelta[i];
-        }
-
-    }
-
-
-
-}
 
 __global__ void weightUpdate(const float* delta, const float* prevLayerActivations, float* weights, const float learningRate, const int prevSize, const int size) {
 
@@ -69,7 +54,6 @@ __global__ void weightUpdate(const float* delta, const float* prevLayerActivatio
        }
    }
 }
-
 
 void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, const std::vector<std::vector<float>> correctOutput,
     const float updateWeightsAfterEveryBackPass,
@@ -124,13 +108,15 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
 
         for (int layerNum = m_numberLayers - 2; layerNum > 0; layerNum--) {
 
-            computeErrorHiddenLayer << <DimGrid, DimBlock, 0, m_deviceStream >> > (
-                
-                m_layers[layerNum].d_error,
-                m_layers[layerNum + 1].d_weights,
+            GpuHelperFunc::cublasCompute(
+                m_feedForwardHandle,
                 m_layers[layerNum + 1].d_newDelta,
+                m_layers[layerNum + 1].d_weights,
+                m_layers[layerNum].d_error,
                 m_shape[layerNum],
-                m_shape[layerNum + 1]
+                1,
+                m_shape[layerNum + 1],
+                m_deviceNum
             );
             CHECK_FOR_KERNEL_ERRORS;
 
@@ -147,10 +133,10 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
             CHECK_FOR_KERNEL_ERRORS;
         }
 
-
         if (updateWeightsAfterEveryBackPass != NULL) {
             updateWeights(updateWeightsAfterEveryBackPass);
             clearDelta();
+
         }
 
     }
@@ -192,8 +178,11 @@ void NeuralNet::updateWeights(float learning_rate) {
 void NeuralNet::clearDelta() {
     cudaSetDevice(m_deviceNum);
 
+    dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
+    dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
+
     for (int layerNum = 0; layerNum < m_numberLayers; layerNum++) {
-        GpuHelperFunc::setAllElemetnsInArrayToOneVal << <1, BLOCK_SIZE_NEURALNETWORK, 0, m_deviceStream >> > (m_layers[layerNum].d_delta,    m_shape[layerNum], 0);
+        GpuHelperFunc::setAllElemetnsInArrayToOneVal << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers[layerNum].d_delta,    m_shape[layerNum], 0);
         CHECK_FOR_KERNEL_ERRORS;
     }
 

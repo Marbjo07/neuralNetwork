@@ -4,9 +4,10 @@
 int main() {
 
     Test::runBenchmarks();
+
     return 1;
 
-    
+
     // important to say hello
     printf("Hello World\n");
 
@@ -80,9 +81,9 @@ int main() {
     float prevLoss = 0;
     float loss = 0;
 
-    for (int epoch = 0; epoch < epoch + 1; epoch++) {
+    for (int epoch = 0; epoch < 10000; epoch++) {
 
-        if (epoch % 10 == 0) {
+        if (epoch % 100 == 0) {
             prevLoss = loss;
             loss = model.performTest(dataset, labels);
             printf("epoch: %d \tloss: %.12f \tdif: %.12f\n",epoch, loss, loss - prevLoss);
@@ -91,37 +92,30 @@ int main() {
         if (trainingMethod == 0) {
             // Stochastic Gradient Descent
             model.backpropagation(dataset, labels, learning_rate);
-            cudaDeviceSynchronize();
             
         }
         else if (trainingMethod == 1) {
             // Gradient Descent 
             model.backpropagation(dataset, labels, NULL, 0, false, true);
-            cudaDeviceSynchronize();
 
         }
         else if (trainingMethod == 2) {
             // Random Mini Batch Gradient Descent
             model.backpropagation(dataset, labels, NULL, batchSize, true);
-            cudaDeviceSynchronize();
 
         }
-
 
         if (trainingMethod != 0) {
             // update weights
             // !Dont use this if you use Stochastic Gradient Descent!
             model.updateWeights(learning_rate);
-            cudaDeviceSynchronize();
 
             // clear delta after updating weights
             // !Dont use this if you use Stochastic Gradient Descent!
             model.clearDelta();
-            cudaDeviceSynchronize();
 
         }
     }
-
     printf("loss: %.6f\n", model.performTest(dataset, labels));
 
     for (int i = 0; i < dataset.size(); i++) {

@@ -3,7 +3,7 @@ model shape = {3, 256, 1024, 4096, 4096, 1024, 256, 3}
 Feedforward()   | Data points in microseconds                                               |   Total |  Average | Change 
 CPU			    | 974888 995912 975568 993463 1023107 1004664 994783 1040392 1000714 996192 | 9999683 | 999968.3 | 
 GPU not correct |  13804  13760  13829  14235   13666   13674  13884   13773   13782  13736 |  138143 |  13814.3 |
-GPU correct     | 115582 121807 134584 120241  120700  120283 127042  124897  134610 124214 | 1243960 |  124396  | output is actually correct 
+GPU correct     | 115582 121807 134584 120241  120700  120283 127042  124897  134610 124214 | 1243960 | 124396   | output is actually correct 
 GPU v3		    |  39762  40986  42278  39139   37990   37074  39181   39773   36604  37715 |  390502 |  39050.2 | removed neuron class for less overhead
 GPU v4          |  11081  10493  10601  10247   10719   10186  10091    9973   10466  10615 |  104472 |  10447.2 | weights, bias and activations is always stored on the GPU 
 GPU v5			|   3877   3946   5106   4505    4544    4001   3978    5797    4615   4358 |   44727 |   4472.7 | better block and grid size (3, 16)
@@ -15,7 +15,7 @@ GPU v10			|  22502  22419  22941  22732   22981   22866   22567  24217   23525  
 GPU v11			|  15651  15360  15952  15755   15838   15730   16103  15563   15529  15615 |  157096 |  15709.6 | shared memory 
 GPU v12		    |  25190  25498  24177  25283   25195   25592   25597   24074  25390  25412 |  251408 |  25140.8 | almost every weight was 0
 GPU v13			|   1555   1534   1510   1514    1504    1640    1942    1536   1579   1594 |   15908 |   1590.8 | stopped being dumb and used cuBLAS.
-GPU v14			|    846    815    831    832     820     816     818     847    796    817 |	 8238 |    823.8 | checks functionNum before looping through activations. This removes alot of unnecessary if statments but reduces readability
+GPU v14			|    846    815    831    832     820     816     818     847    796    817 |	 8238 |    823.8 | checks functionNum before looping through activations. This removes alot of unnecessary if-statments but reduces readability
 
 
 model shape = {3, 256, 1024, 4096, 4096, 1024, 256, 3}
@@ -50,14 +50,18 @@ models shape = {3, 256, 1024, 4096, 4096, 1024, 256, 3}
  
 Stochastic Gradient Descent
 backpropagation(dataset, labels, learning_rate)	| Data point in microseconds                                            |       Total | Average | Change
-v1                                              | 397389 396361 400190 397923 394232 400125 400256 394830 397166 395645 | 3.97412e+06 | 397412  | 
+v1                                              | 397389 396361 400190 397923 394232 400125 400256 394830 397166 395645 | 3.97412e+06 |  397412 | 
+v2                                              | 327311 325575 327319 325260 326501 325251 327093 326276 325733 326606 | 3.26292e+06 |  326292 | Using cublas for calculating error hidden layers
 
 
 Gradient Descent 
 backpropagation(dataset, labels, NULL, 0, false, true) | Data point in microseconds                                  |  Total |  Average | Change
 v1                                                     | 80113 79478 79541 80205 79761 79804 78759 78027 78773 78620 | 793081 |  79308.1 | 
+v2                                                     | 15779 16399 15903 15767 15945 16558 17224 15677 15984 16334 | 161570 |  16157   | Using cublas for calculating error hidden layers
 
 
 Random Mini Batch Gradient Descent
-backpropagation(dataset, labels, NULL, batchSize, true) | Data point in microseconds                                  |  Total | Average | Change
-v1                                                      | 23719 23958 23680 24646 23807 23972 23585 23396 23361 23426 | 237550 |   23755 | 
+backpropagation(dataset, labels, NULL, batchSize, true) | Data point in microseconds                                  |  Total |  Average | Change
+v1                                                      | 23719 23958 23680 24646 23807 23972 23585 23396 23361 23426 | 237550 |   23755  |
+v2                                                      |  5053  4911  4975  4773  4696  4951  4698  4708  4690  4849 |  48304 |   4830.4 | Using cublas for calculating error hidden layers
+

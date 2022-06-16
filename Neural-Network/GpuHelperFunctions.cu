@@ -12,6 +12,7 @@ namespace GpuHelperFunc {
 		}
 	}
 
+	//https://solarianprogrammer.com/2012/05/31/matrix-multiplication-cuda-cublas-curand-thrust/
 	void cublasCompute(cublasHandle_t handle, float* d_A, float* d_B, float* d_C, int uiWB, int uiHA, int uiWA, const int deviceNum) {
 		cudaSetDevice(deviceNum);
 		
