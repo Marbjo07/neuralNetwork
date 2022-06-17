@@ -362,15 +362,21 @@ void NeuralNet::mutate(float mutationStrength) {
 
 float NeuralNet::sumOfWeightsAndBias() {
     cudaSetDevice(m_deviceNum);
-
+    float* d_sum = NULL;
     float sum = 0;
+    float fromKernel = 0;
+
+    cudaMalloc(&d_sum, sizeof(float) * 1);
 
     for (uint32_t layerNum = 1; layerNum < m_numberLayers; layerNum++) {
 
-        GpuHelperFunc::sumOfArray<<<1, 1, 0, m_deviceStream >>>(m_layers[layerNum].d_weights, m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons, sum);
-        
+        GpuHelperFunc::sumOfArray<<<1, 1, 0, m_deviceStream >>>(m_layers[layerNum].d_weights, m_layers[layerNum].m_numberNeurons * m_layers[layerNum - 1].m_numberNeurons, d_sum);
         CHECK_FOR_KERNEL_ERRORS;
 
+        cudaMemcpy(&fromKernel, d_sum, sizeof(float), cudaMemcpyDeviceToHost);
+        CHECK_FOR_KERNEL_ERRORS;
+
+        sum += fromKernel;
         sum += m_layers[layerNum].m_bias;
     }
     return sum;
@@ -540,7 +546,7 @@ float NeuralNet::sumOfDeltas() {
 
     for (int i = 0; i < m_numberLayers; i++) {
     
-        GpuHelperFunc::sumOfArray<<<1, 1 >>>(m_layers[i].d_delta, m_shape[i], sum);
+        //GpuHelperFunc::sumOfArray<<<1, 1 >>>(m_layers[i].d_delta, m_shape[i], sum);
         CHECK_FOR_KERNEL_ERRORS;
     }
 

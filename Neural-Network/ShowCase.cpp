@@ -7,7 +7,6 @@ int main() {
 
     return 1;
 
-
     // important to say hello
     printf("Hello World\n");
 
@@ -71,17 +70,16 @@ int main() {
     // Init will clear model if already called!
     // If defualtWeight is specified every weight is set to that value 
     // "AI" is the name of the model. The name is printed in warrnings
-    model.init("AI", clock(), 5);
+    model.init("AI", 1, 5);
+    //0.017424156889
 
 
     printf("loss: %.6f\n", model.performTest(dataset, labels));
 
-    //model.printWeightsAndBias();
-
     float prevLoss = 0;
     float loss = 0;
 
-    for (int epoch = 0; epoch < 10000; epoch++) {
+    for (int epoch = 0; epoch < 5000; epoch++) {
 
         if (epoch % 100 == 0) {
             prevLoss = loss;
@@ -116,6 +114,7 @@ int main() {
 
         }
     }
+    return 0;
     printf("loss: %.6f\n", model.performTest(dataset, labels));
 
     for (int i = 0; i < dataset.size(); i++) {

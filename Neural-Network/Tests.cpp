@@ -57,24 +57,24 @@ namespace Test {
         model.m_shape = { 3, 256, 1024, 4096, 4096, 1024, 256, 3 };
         model.m_activationFunctions = { "sigmoid", "tanh", "linear", "relu", "sigmoid", "tanh", "linear" };
         model.init("Optimizer", clock());
-
-
+        
+        
         Test::InitBenchmark();
-
+        
         Test::MutateBenchmark();
-
-
+        
+        
         // Check time for feedforward
         Test::FeedForwardBenchmark();
-
+        
         // Prints and uses the best Grids and Blocks value for feedforward
         model.optimizeParametersFeedforward(5, 32, 10);
-
+        
         // Check time with new blocks and grid.
         // The changes aren't big for small models but for bigger model it can be better.
         Test::FeedForwardBenchmark(model.m_gridFeedforward, model.m_blockFeedforward);
 
-        BackpropagationBenchmark(model.m_gridFeedforward, model.m_blockFeedforward);
+        Test::BackpropagationBenchmark(1, 9);
     }
 
     void FeedForwardBenchmark(uint32_t grid, uint32_t block) {

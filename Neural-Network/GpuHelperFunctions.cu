@@ -13,27 +13,28 @@ namespace GpuHelperFunc {
 	}
 
 	//https://solarianprogrammer.com/2012/05/31/matrix-multiplication-cuda-cublas-curand-thrust/
-	void cublasCompute(cublasHandle_t handle, float* d_A, float* d_B, float* d_C, int uiWB, int uiHA, int uiWA, const int deviceNum) {
+	//https://stackoverflow.com/questions/51355427/how-do-do-blas-cublas-treat-the-factors-alpha-and-beta-in-their-routines
+	void cublasCompute(cublasHandle_t handle, float* d_A, float* d_B, float* d_C, int m, int k, int n, const int deviceNum, int _alpha, int _beta) {
 		cudaSetDevice(deviceNum);
 		
-		float alpha = 1;
-		float beta = 0;
+		float alpha = _alpha;
+		float beta = _beta;
 		//       Signature: handel, operation, operation, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc
 		cublasSgemm(
 			handle,
 			CUBLAS_OP_N,
 			CUBLAS_OP_N,
-			uiWB,
-			uiHA,
-			uiWA,
+			m,
+			k,
+			n,
 			&alpha,
 			d_B,
-			uiWB,
+			m,
 			d_A,
-			uiWA,
+			n,
 			&beta,
 			d_C,
-			uiWB
+			m
 		);
 
 
@@ -76,7 +77,7 @@ namespace GpuHelperFunc {
 		}
 	}
 
-	__global__ void sumOfArray(float* arrayToSum, const uint32_t size, float sum) {
+	__global__ void sumOfArray(float* arrayToSum, const uint32_t size, float* sum) {
 
 		uint32_t id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
 		if (id == 0) {
@@ -84,7 +85,7 @@ namespace GpuHelperFunc {
 			for (uint32_t i = 0; i < size; i++) {
 				tmp += arrayToSum[i];
 			}
-			sum = tmp;
+			sum[0] = tmp;
 		}
 	}
 

@@ -106,7 +106,9 @@ float* NeuralNet::feedForward(uint32_t gridSize, uint32_t blockSize) {
             m_shape[layerNum],
             1,
             m_shape[layerNum - 1],
-            m_deviceNum
+            m_deviceNum,
+            1,
+            0
         );
 
         CHECK_FOR_KERNEL_ERRORS;

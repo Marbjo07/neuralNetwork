@@ -43,34 +43,6 @@ __global__ void computeDelta(float* delta, float* newDelta, const float* error, 
     }
 }
 
-
-__global__ void weightUpdate(const float* delta, const float* prevLayerActivations, float* weights, const float learningRate, const int prevSize, const int size) {
-
-    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
-
-   for (; id < prevSize; id += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
-       for (int j = 0; j < size; j++) {
-           weights[id * size + j] -= learningRate * delta[j] * prevLayerActivations[id];
-       }
-   }
-}
-
-__global__ void weightUpdateAndClearDelta(float* delta, const float* prevLayerActivations, float* weights, const float learningRate, const int prevSize, const int size) {
-
-    int id = ((gridDim.x * blockIdx.y) + blockIdx.x * (blockDim.x * blockDim.y)) + (threadIdx.y * blockDim.x) + threadIdx.x;
-
-    for (int j = id; j < size; j += blockDim.x * blockDim.y * gridDim.x * gridDim.y) {
-           
-        for (int i = 0; i < prevSize; i++ ) {
-
-            weights[i * size + j] -= learningRate * delta[j] * prevLayerActivations[i];
-
-        }
-        delta[j] = 0;
-
-    }
-}
-
 void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, const std::vector<std::vector<float>> correctOutput,
     const float updateWeightsAfterEveryBackPass,
     int batchSize,
@@ -92,6 +64,7 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
         batchSize = dataset.size();
     }
 
+
     for (int batchIndex = 0; batchIndex < batchSize; batchIndex++) {
 
         if (randomBatching) {
@@ -103,38 +76,34 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
 
         setInput(dataset[datasetIndex]);
         feedForward();
-
+        cudaDeviceSynchronize();
         cudaMemcpy(d_expectedOutput, correctOutput[datasetIndex].data(), m_shape.back() * sizeof(float), cudaMemcpyHostToDevice);
         CHECK_FOR_KERNEL_ERRORS;
 
-        GpuHelperFunc::forEach::sub <<<1, 1, 0, m_deviceStream >> > (m_layers.back().d_error, m_layers.back().d_activations, d_expectedOutput, m_shape.back());
-        CHECK_FOR_KERNEL_ERRORS;
+        for (int layerNum = m_numberLayers - 1; layerNum > 0; layerNum--) {
 
-        int funcNum = getActivationFuncNum(m_numberLayers - 1);
-        computeDelta << <DimGrid, DimBlock, 0, m_deviceStream >> > (
-            m_layers.back().d_delta, 
-            m_layers.back().d_newDelta,  
-            m_layers.back().d_activations, 
-            m_layers.back().d_error,
-            funcNum, 
-            m_shape.back()
-        );
+            if (layerNum == m_numberLayers - 1) {
+            
+                GpuHelperFunc::forEach::sub << <DimGrid, DimBlock, 0, m_deviceStream >> > (m_layers.back().d_error, m_layers.back().d_activations, d_expectedOutput, m_shape.back());
+                CHECK_FOR_KERNEL_ERRORS;
 
-        CHECK_FOR_KERNEL_ERRORS;
+            }
+            else {
+                GpuHelperFunc::cublasCompute(
+                    m_feedForwardHandle,
+                    m_layers[layerNum + 1].d_newDelta,
+                    m_layers[layerNum + 1].d_weights,
+                    m_layers[layerNum].d_error,
+                    m_shape[layerNum],
+                    1,
+                    m_shape[layerNum + 1],
+                    m_deviceNum,
+                    1,
+                    0
+                );
+                CHECK_FOR_KERNEL_ERRORS;
+            }
 
-        for (int layerNum = m_numberLayers - 2; layerNum > 0; layerNum--) {
-
-            GpuHelperFunc::cublasCompute(
-                m_feedForwardHandle,
-                m_layers[layerNum + 1].d_newDelta,
-                m_layers[layerNum + 1].d_weights,
-                m_layers[layerNum].d_error,
-                m_shape[layerNum],
-                1,
-                m_shape[layerNum + 1],
-                m_deviceNum
-            );
-            CHECK_FOR_KERNEL_ERRORS;
 
             int funcNum = getActivationFuncNum(layerNum);
             computeDelta <<<DimGrid, DimBlock, 0, m_deviceStream>>>(
@@ -150,7 +119,7 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
         }
 
         if (updateWeightsAfterEveryBackPass != NULL) {
-            updateWeightsAndClearDelta(updateWeightsAfterEveryBackPass);
+            updateWeights(updateWeightsAfterEveryBackPass);
         }
 
     }
@@ -166,26 +135,31 @@ void NeuralNet::backpropagation(const std::vector<std::vector<float>> dataset, c
 }
 
 
-void NeuralNet::updateWeights(const float learning_rate) {
+void NeuralNet::updateWeights(float learning_rate) {
 
     cudaSetDevice(m_deviceNum);
 
     dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
     dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
-
+    
     for (int layerNum = m_numberLayers - 1; layerNum > 0; layerNum--) {
-        weightUpdate << <DimGrid, DimBlock, 0, m_deviceStream >> > (
+
+        GpuHelperFunc::forEach::constVal::mul<<<DimGrid, DimBlock >>>(m_layers[layerNum].d_delta, m_layers[layerNum].d_delta, -learning_rate, m_shape[layerNum]);
+        GpuHelperFunc::cublasCompute(
+            m_feedForwardHandle,
             m_layers[layerNum].d_delta,
             m_layers[layerNum - 1].d_activations,
             m_layers[layerNum].d_weights,
-            learning_rate,
             m_shape[layerNum - 1],
-            m_shape[layerNum]
-            );
-        CHECK_FOR_KERNEL_ERRORS;
-    
-    }
+            1,
+            m_shape[layerNum],
+            m_deviceNum,
+            1,
+            1
+        );
 
+    }
+   
     return;
 }
 
@@ -202,29 +176,5 @@ void NeuralNet::clearDelta() {
 
     return;
 }
-
-void NeuralNet::updateWeightsAndClearDelta(const float learning_rate) {
-
-    cudaSetDevice(m_deviceNum);
-
-    dim3 DimGrid(GRID_SIZE_NEURALNETWORK, GRID_SIZE_NEURALNETWORK, 1);
-    dim3 DimBlock(BLOCK_SIZE_NEURALNETWORK, BLOCK_SIZE_NEURALNETWORK, 1);
-
-    for (int layerNum = m_numberLayers - 1; layerNum > 0; layerNum--) {
-        weightUpdateAndClearDelta << <DimGrid, DimBlock, 0, m_deviceStream >> > (
-            m_layers[layerNum].d_delta,
-            m_layers[layerNum - 1].d_activations,
-            m_layers[layerNum].d_weights,
-            learning_rate,
-            m_shape[layerNum - 1],
-            m_shape[layerNum]
-            );
-        CHECK_FOR_KERNEL_ERRORS;
-
-    }
-
-    return;
-}
-
 
 #endif //!BACKPROPAGATION_CU
